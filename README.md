@@ -51,7 +51,7 @@ For further information on the SkyFire project, please visit our project website
     + Windows 2022 Server:      x86_64
 + Processor with SSE2 support
 + ACE = 8.0.1  (Linux only)
-+ MySQL = 9.1 (Windows / Linux)
++ MySQL = 9.7 (Windows / Linux)
 + CMake = 4.1.2/3.27.7 (Windows / Linux)
 + OpenSSL = 4.0.0
 + GCC = 14.1.0 (Linux only)

@@ -17,6 +17,12 @@
 
 set( MYSQL_FOUND 0 )
 
+set(MYSQL_ROOT_HINTS
+  $ENV{MYSQL_ROOT}
+  $ENV{MYSQL_HOME}
+  $ENV{MYSQL_DIR}
+)
+
 if( UNIX )
   set(MYSQL_CONFIG_PREFER_PATH "$ENV{MYSQL_HOME}/bin" CACHE FILEPATH
     "preferred path to MySQL (mysql_config)"
@@ -73,12 +79,21 @@ find_path(MYSQL_INCLUDE_DIR
   NAMES
     mysql.h
   PATHS
+    ${MYSQL_ROOT_HINTS}
+  PATH_SUFFIXES
+    include
+  PATHS
     ${MYSQL_ADD_INCLUDE_PATH}
     /usr/include
     /usr/include/mysql
     /usr/local/include
     /usr/local/include/mysql
     /usr/local/mysql/include
+    "C:/Program Files/MySQL/MySQL Server 9.7/include"
+    "C:/Program Files/MySQL/MySQL Server 9.6/include"
+    "C:/Program Files/MySQL/MySQL Server 9.5/include"
+    "C:/Program Files/MySQL/MySQL Server 9.4/include"
+    "C:/Program Files/MySQL/MySQL Server 9.3/include"
     "C:/Program Files/MySQL/MySQL Server 9.2/include"
     "C:/Program Files/MySQL/MySQL Server 9.1/include"
     "C:/Program Files/MySQL/MySQL Server 9.0/include"
@@ -139,7 +154,17 @@ if( WIN32 )
   NAMES
     libmysql.dll
   PATHS
+    ${MYSQL_ROOT_HINTS}
+  PATH_SUFFIXES
+    lib
+    lib/opt
+  PATHS
     ${MYSQL_ADD_LIBRARIES_PATH}
+    "C:/Program Files/MySQL/MySQL Server 9.7/lib"
+    "C:/Program Files/MySQL/MySQL Server 9.6/lib"
+    "C:/Program Files/MySQL/MySQL Server 9.5/lib"
+    "C:/Program Files/MySQL/MySQL Server 9.4/lib"
+    "C:/Program Files/MySQL/MySQL Server 9.3/lib"
     "C:/Program Files/MySQL/MySQL Server 9.2/lib"
     "C:/Program Files/MySQL/MySQL Server 9.1/lib"
     "C:/Program Files/MySQL/MySQL Server 9.0/lib"
@@ -162,7 +187,17 @@ if( WIN32 )
     NAMES
       libmysql
     PATHS
+      ${MYSQL_ROOT_HINTS}
+    PATH_SUFFIXES
+      lib
+      lib/opt
+    PATHS
       ${MYSQL_ADD_LIBRARIES_PATH}
+      "C:/Program Files/MySQL/MySQL Server 9.7/lib"
+      "C:/Program Files/MySQL/MySQL Server 9.6/lib"
+      "C:/Program Files/MySQL/MySQL Server 9.5/lib"
+      "C:/Program Files/MySQL/MySQL Server 9.4/lib"
+      "C:/Program Files/MySQL/MySQL Server 9.3/lib"
       "C:/Program Files/MySQL/MySQL Server 9.2/lib"
       "C:/Program Files/MySQL/MySQL Server 9.1/lib"
       "C:/Program Files/MySQL/MySQL Server 9.0/lib"
