@@ -70,8 +70,31 @@ else()
 endif()
 
 set(ACE_EXPECTED_VERSION 8.0.1)
+set(BOOST_EXPECTED_VERSION 1.91.0)
+
+if(BOOST_ROOT)
+  file(TO_CMAKE_PATH "${BOOST_ROOT}" BOOST_ROOT_HINT)
+elseif(DEFINED ENV{BOOST_ROOT})
+  file(TO_CMAKE_PATH "$ENV{BOOST_ROOT}" BOOST_ROOT_HINT)
+endif()
+
+if(BOOST_ROOT_HINT)
+  list(APPEND CMAKE_PREFIX_PATH "${BOOST_ROOT_HINT}")
+
+  if(NOT Boost_DIR)
+    file(GLOB BOOST_CONFIG_DIRS LIST_DIRECTORIES true
+      "${BOOST_ROOT_HINT}/lib*/cmake/Boost-${BOOST_EXPECTED_VERSION}"
+    )
+
+    if(BOOST_CONFIG_DIRS)
+      list(SORT BOOST_CONFIG_DIRS ORDER DESCENDING)
+      list(GET BOOST_CONFIG_DIRS 0 Boost_DIR)
+    endif()
+  endif()
+endif()
 
 find_package(PCHSupport)
+find_package(Boost ${BOOST_EXPECTED_VERSION} REQUIRED)
 find_package(ACE REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
