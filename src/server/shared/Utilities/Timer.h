@@ -6,27 +6,22 @@
 #ifndef SKYFIRE_TIMER_H
 #define SKYFIRE_TIMER_H
 
-#include "ace/OS_NS_sys_time.h"
 #include "Common.h"
+#include "Platform/Time.h"
 
 inline uint32 getMSTime()
 {
-    static const ACE_Time_Value ApplicationStartTime = ACE_OS::gettimeofday();
-    return (ACE_OS::gettimeofday() - ApplicationStartTime).msec();
+    return Skyfire::GetMSTime();
 }
 
 inline uint32 getMSTimeDiff(uint32 oldMSTime, uint32 newMSTime)
 {
-    // getMSTime() have limited data range and this is case when it overflow in this tick
-    if (oldMSTime > newMSTime)
-        return (0xFFFFFFFF - oldMSTime) + newMSTime;
-    else
-        return newMSTime - oldMSTime;
+    return Skyfire::GetMSTimeDiff(oldMSTime, newMSTime);
 }
 
 inline uint32 GetMSTimeDiffToNow(uint32 oldMSTime)
 {
-    return getMSTimeDiff(oldMSTime, getMSTime());
+    return Skyfire::GetMSTimeDiffToNow(oldMSTime);
 }
 
 struct IntervalTimer
