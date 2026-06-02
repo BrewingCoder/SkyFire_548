@@ -85,16 +85,16 @@ target_link_libraries(authserver
 
 if( WIN32 )
   if ( MSVC )
-    #add libcrypto-3 dll to bin Folder
+    #add libcrypto dll to bin Folder
     add_custom_command(TARGET authserver
     POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy ${OPENSSL_CRYPTO3_DLL} ${CMAKE_BINARY_DIR}/bin/$(ConfigurationName)/
+    COMMAND ${CMAKE_COMMAND} -E copy ${OPENSSL_CRYPTO_DLL} ${CMAKE_BINARY_DIR}/bin/$(ConfigurationName)/
     )
 
-    #add libssl-3 dll to bin Folder
+    #add libssl dll to bin Folder
     add_custom_command(TARGET authserver
     POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy ${OPENSSL_SSL3_DLL} ${CMAKE_BINARY_DIR}/bin/$(ConfigurationName)/
+    COMMAND ${CMAKE_COMMAND} -E copy ${OPENSSL_SSL_DLL} ${CMAKE_BINARY_DIR}/bin/$(ConfigurationName)/
     )
 
     #add mysql dll to bin folder
@@ -113,16 +113,16 @@ if( WIN32 )
       COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/authserver.conf.dist ${CMAKE_BINARY_DIR}/bin/
     )
   elseif(CMAKE_C_COMPILER_ID STREQUAL "Clang")
-    #add libcrypto-3 dll to bin Folder
+    #add libcrypto dll to bin Folder
     add_custom_command(TARGET authserver
     POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy ${OPENSSL_CRYPTO3_DLL} ${CMAKE_BINARY_DIR}/bin/$(ConfigurationName)/
+    COMMAND ${CMAKE_COMMAND} -E copy ${OPENSSL_CRYPTO_DLL} ${CMAKE_BINARY_DIR}/bin/$(ConfigurationName)/
     )
 
-    #add libssl-3 dll to bin Folder
+    #add libssl dll to bin Folder
     add_custom_command(TARGET authserver
     POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy ${OPENSSL_SSL3_DLL} ${CMAKE_BINARY_DIR}/bin/$(ConfigurationName)/
+    COMMAND ${CMAKE_COMMAND} -E copy ${OPENSSL_SSL_DLL} ${CMAKE_BINARY_DIR}/bin/$(ConfigurationName)/
     )
 
     #add mysql dll to bin folder

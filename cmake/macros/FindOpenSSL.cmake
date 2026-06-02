@@ -77,15 +77,17 @@ IF(WIN32 AND NOT CYGWIN)
     # libeay32MD.lib is identical to ../libeay32.lib, and
     # ssleay32MD.lib is identical to ../ssleay32.lib
 
-    FIND_FILE(OPENSSL_CRYPTO3_DLL
+    FIND_FILE(OPENSSL_CRYPTO_DLL
     NAMES
+       libcrypto-4-x64.dll
        libcrypto-3-x64.dll
     PATHS
       ${OPENSSL_MODULES_DIR}
     )
 
-    FIND_FILE(OPENSSL_SSL3_DLL
+    FIND_FILE(OPENSSL_SSL_DLL
     NAMES
+       libssl-4-x64.dll
        libssl-3-x64.dll
     PATHS
       ${OPENSSL_MODULES_DIR}
@@ -144,11 +146,14 @@ IF(WIN32 AND NOT CYGWIN)
     endif()
 	
     IF(DEFINED ENV{OPENSSL_MODULES})
-	  MESSAGE(STATUS "OpenSSL: Environment variable [OPENSSL_MODULES] is set to: $ENV{OPENSSL_MODULES}")
+      file(TO_CMAKE_PATH "$ENV{OPENSSL_MODULES}" OPENSSL_MODULES)
+      MESSAGE(STATUS "OpenSSL: Environment variable [OPENSSL_MODULES] is set to: ${OPENSSL_MODULES}")
+    ELSEIF(OPENSSL_MODULES_DIR)
+      set(OPENSSL_MODULES ${OPENSSL_MODULES_DIR})
+      MESSAGE(STATUS "OpenSSL: Using discovered modules directory: ${OPENSSL_MODULES}")
     ELSE()
-	  MESSAGE(FATAL_ERROR "SkyFire requires OPENSSL_MODULES environment variable to be set. \n"
-        "Please create and set the environment variable to: \"${OPENSSL_MODULES_DIR}\" \n"
-		"NOTE: If you are using CMake GUI Remember to restart your CMake GUI for the environment variable to take effect. \n")
+      MESSAGE(FATAL_ERROR "SkyFire could not find the OpenSSL modules directory. "
+        "Set OPENSSL_MODULES to the directory containing legacy.dll.")
     ENDIF()
 
     MARK_AS_ADVANCED(OPENSSL_LIB_SSL_DEBUG OPENSSL_LIB_SSL_RELEASE OPENSSL_LIB_CRYPTO_DEBUG OPENSSL_LIB_CRYPTO_RELEASE)
