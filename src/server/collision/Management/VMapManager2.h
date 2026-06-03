@@ -9,7 +9,6 @@
 #include "IVMapManager.h"
 #include "Dynamic/UnorderedMap.h"
 #include "Define.h"
-#include <ace/Thread_Mutex.h>
 #include <mutex>
 
 //===========================================================
