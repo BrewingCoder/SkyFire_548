@@ -4,7 +4,7 @@
 #include "Common.h"
 #include "Config.h"
 #include "Object.h"
-#include <ace/Singleton.h>
+#include "Platform/Singleton.h"
 
 /// Cinematic sequence key frame
 struct CinematicKeyFrame
@@ -37,7 +37,7 @@ public:
 class CinematicSequenceMgr
 {
     /// Singleton access
-    friend class ACE_Singleton < CinematicSequenceMgr, ACE_Null_Mutex >;
+    friend class Skyfire::Singleton<CinematicSequenceMgr, Skyfire::NullMutex>;
     /// Constructor
     CinematicSequenceMgr() { }
     /// Destructor
@@ -55,6 +55,6 @@ private:
 };
 
 /// Singleton
-#define sCinematicSequenceMgr ACE_Singleton<CinematicSequenceMgr, ACE_Null_Mutex>::instance()
+#define sCinematicSequenceMgr Skyfire::Singleton<CinematicSequenceMgr, Skyfire::NullMutex>::instance()
 
 #endif /* MIGHT4_CINEMATIC_SEQUENCE_MGR */

@@ -7,9 +7,8 @@
 #define SF_REALMLIST_H
 
 #include "Common.h"
+#include "Platform/Singleton.h"
 #include <ace/INET_Addr.h>
-#include <ace/Null_Mutex.h>
-#include <ace/Singleton.h>
 
 enum RealmFlags
 {
@@ -73,5 +72,5 @@ private:
     time_t   m_NextUpdateTime;
 };
 
-#define sRealmList ACE_Singleton<RealmList, ACE_Null_Mutex>::instance()
+#define sRealmList Skyfire::Singleton<RealmList, Skyfire::NullMutex>::instance()
 #endif

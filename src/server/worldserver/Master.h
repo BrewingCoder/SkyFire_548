@@ -11,6 +11,7 @@
 #define _MASTER_H
 
 #include "Common.h"
+#include "Platform/Singleton.h"
 
 /// Start the server
 class Master
@@ -43,7 +44,7 @@ private:
     const char* _worldDB;
 };
 
-#define sMaster ACE_Singleton<Master, ACE_Null_Mutex>::instance()
+#define sMaster Skyfire::Singleton<Master, Skyfire::NullMutex>::instance()
 
 #endif
 

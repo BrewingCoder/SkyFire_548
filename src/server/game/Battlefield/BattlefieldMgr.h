@@ -6,8 +6,8 @@
 #ifndef BATTLEFIELD_MGR_H_
 #define BATTLEFIELD_MGR_H_
 
-#include "ace/Singleton.h"
 #include "Battlefield.h"
+#include "Platform/Singleton.h"
 
 class Player;
 class GameObject;
@@ -62,6 +62,6 @@ private:
     uint32 m_UpdateTimer;
 };
 
-#define sBattlefieldMgr ACE_Singleton<BattlefieldMgr, ACE_Null_Mutex>::instance()
+#define sBattlefieldMgr Skyfire::Singleton<BattlefieldMgr, Skyfire::NullMutex>::instance()
 
 #endif

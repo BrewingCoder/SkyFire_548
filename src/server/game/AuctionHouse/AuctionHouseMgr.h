@@ -6,11 +6,10 @@
 #ifndef SF_AUCTION_HOUSE_MGR_H
 #define SF_AUCTION_HOUSE_MGR_H
 
-#include <ace/Singleton.h>
-
 #include "Common.h"
 #include "DatabaseEnv.h"
 #include "DBCStructure.h"
+#include "Platform/Singleton.h"
 
 class Item;
 class Player;
@@ -124,7 +123,7 @@ private:
 
 class AuctionHouseMgr
 {
-    friend class ACE_Singleton<AuctionHouseMgr, ACE_Null_Mutex>;
+    friend class Skyfire::Singleton<AuctionHouseMgr, Skyfire::NullMutex>;
 
 private:
     AuctionHouseMgr() { }
@@ -177,6 +176,6 @@ private:
     ItemMap mAitems;
 };
 
-#define sAuctionMgr ACE_Singleton<AuctionHouseMgr, ACE_Null_Mutex>::instance()
+#define sAuctionMgr Skyfire::Singleton<AuctionHouseMgr, Skyfire::NullMutex>::instance()
 
 #endif

@@ -9,6 +9,7 @@
 #include "Define.h"
 #include "Dynamic/TypeList.h"
 #include "ObjectRegistry.h"
+#include "Platform/Singleton.h"
 
 /** FactoryHolder holds a factory object of a specific type
  */
@@ -17,8 +18,8 @@ class FactoryHolder
 {
 public:
     typedef ObjectRegistry<FactoryHolder<T, Key >, Key > FactoryHolderRegistry;
-    friend class ACE_Singleton<FactoryHolderRegistry, ACE_Null_Mutex>;
-    typedef ACE_Singleton<FactoryHolderRegistry, ACE_Null_Mutex> FactoryHolderRepository;
+    friend class Skyfire::Singleton<FactoryHolderRegistry, Skyfire::NullMutex>;
+    typedef Skyfire::Singleton<FactoryHolderRegistry, Skyfire::NullMutex> FactoryHolderRepository;
 
     FactoryHolder(Key k) : i_key(k) { }
     virtual ~FactoryHolder() { }

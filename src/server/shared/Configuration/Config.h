@@ -6,9 +6,10 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include <ace/Configuration_Import_Export.h>
-#include <ace/Singleton.h>
 #include <AutoPtr.h>
+#include "Platform/Singleton.h"
+#include <ace/Configuration_Import_Export.h>
+#include <ace/Null_Mutex.h>
 #include <list>
 #include <mutex>
 #include <string>
@@ -17,7 +18,7 @@ typedef Skyfire::AutoPtr<ACE_Configuration_Heap, ACE_Null_Mutex> Config;
 
 class ConfigMgr
 {
-    friend class ACE_Singleton<ConfigMgr, ACE_Null_Mutex>;
+    friend class Skyfire::Singleton<ConfigMgr, Skyfire::NullMutex>;
     friend class ConfigLoader;
 
     ConfigMgr() { }
@@ -60,6 +61,6 @@ private:
     ConfigMgr& operator=(ConfigMgr const&);
 };
 
-#define sConfigMgr ACE_Singleton<ConfigMgr, ACE_Null_Mutex>::instance()
+#define sConfigMgr Skyfire::Singleton<ConfigMgr, Skyfire::NullMutex>::instance()
 
 #endif
