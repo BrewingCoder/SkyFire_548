@@ -1193,7 +1193,7 @@ private:
     uint32 recruiterId;
     bool isRecruiter;
     bool m_hasBoost;
-    ACE_Based::LockedQueue<WorldPacket*, Skyfire::Mutex> _recvQueue;
+    Skyfire::LockedQueue<WorldPacket*, Skyfire::Mutex> _recvQueue;
     time_t timeLastWhoCommand;
     z_stream_s* _compressionStream;
     rbac::RBACData* _RBACData;

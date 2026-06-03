@@ -11,12 +11,13 @@
 #include <cstdint>
 #include <thread>
 
-namespace ACE_Based
+namespace Skyfire
 {
 
     class Runnable
     {
     public:
+        Runnable() : m_refs(0) { }
         virtual ~Runnable() { }
         virtual void run() = 0;
 
@@ -28,7 +29,6 @@ namespace ACE_Based
         }
     private:
         std::atomic<long> m_refs;
-        //ACE_Atomic_Op<ACE_Thread_Mutex, long> m_refs;
     };
 
     enum Priority
@@ -87,5 +87,20 @@ namespace ACE_Based
         bool m_started;
     };
 
+}
+
+namespace ACE_Based
+{
+    using Skyfire::Priority;
+    using Skyfire::Idle;
+    using Skyfire::Lowest;
+    using Skyfire::Low;
+    using Skyfire::Normal;
+    using Skyfire::High;
+    using Skyfire::Highest;
+    using Skyfire::Realtime;
+    using Skyfire::Runnable;
+    using Skyfire::Thread;
+    using Skyfire::ThreadPriority;
 }
 #endif

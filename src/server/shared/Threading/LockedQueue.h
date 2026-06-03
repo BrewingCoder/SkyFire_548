@@ -12,7 +12,7 @@
 #include <deque>
 #include <mutex>
 
-namespace ACE_Based
+namespace Skyfire
 {
     template <class T, class LockType, typename StorageType = std::deque<T> >
     class LockedQueue
@@ -134,5 +134,11 @@ namespace ACE_Based
             return _queue.empty();
         }
     };
+}
+
+namespace ACE_Based
+{
+    template <class T, class LockType, typename StorageType = std::deque<T> >
+    using LockedQueue = Skyfire::LockedQueue<T, LockType, StorageType>;
 }
 #endif

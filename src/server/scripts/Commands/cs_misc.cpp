@@ -4,7 +4,6 @@
 */
 
 #include "AccountMgr.h"
-#include "ace/INET_Addr.h"
 #include "ArenaTeamMgr.h"
 #include "CellImpl.h"
 #include "Chat.h"

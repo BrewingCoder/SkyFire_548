@@ -8,7 +8,7 @@
 #include <chrono>
 #include <functional>
 
-using namespace ACE_Based;
+using namespace Skyfire;
 
 ThreadPriority::ThreadPriority()
 {

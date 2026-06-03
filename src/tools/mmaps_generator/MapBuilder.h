@@ -21,7 +21,7 @@
 
 using namespace VMAP;
 
-// G3D namespace typedefs conflicts with ACE typedefs
+// Keep G3D typedefs isolated from shared engine typedefs.
 
 namespace MMAP
 {

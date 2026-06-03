@@ -12,7 +12,9 @@
 
 #include "Define.h"
 
-#ifndef _WIN32
+#ifdef _WIN32
+    #include <windows.h>
+#else
     #include <stddef.h>
     #include <dirent.h>
 #endif

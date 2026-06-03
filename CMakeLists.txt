@@ -65,7 +65,6 @@ include(CheckPlatform)
 
 set(OPENSSL_EXPECTED_VERSION 4.0.0)
 
-set(ACE_EXPECTED_VERSION 8.0.1)
 set(BOOST_EXPECTED_VERSION 1.91.0)
 
 if(BOOST_ROOT)
@@ -91,7 +90,6 @@ endif()
 
 find_package(PCHSupport)
 find_package(Boost ${BOOST_EXPECTED_VERSION} REQUIRED)
-find_package(ACE REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(Threads REQUIRED)
 find_package(MySQL REQUIRED)

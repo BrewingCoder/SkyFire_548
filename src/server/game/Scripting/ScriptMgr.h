@@ -979,7 +979,6 @@ private:
 
     //atomic op counter for active scripts amount
     std::atomic<long> _scheduledScripts;
-    //ACE_Atomic_Op<ACE_Thread_Mutex, long> _scheduledScripts;
 };
 
 template <class S>
