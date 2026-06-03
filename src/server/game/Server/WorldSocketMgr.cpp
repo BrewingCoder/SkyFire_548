@@ -23,6 +23,7 @@
 
 #include <atomic>
 #include <set>
+#include <thread>
 
 #include "Common.h"
 #include "Config.h"
@@ -37,13 +38,12 @@
 * network threads, and assigning connections from acceptor thread
 * to other network threads
 */
-class ReactorRunnable : protected ACE_Task_Base
+class ReactorRunnable
 {
 public:
     ReactorRunnable() :
         m_Reactor(0),
-        m_Connections(0),
-        m_ThreadId(-1)
+        m_Connections(0)
     {
         ACE_Reactor_Impl* imp;
 
@@ -79,13 +79,26 @@ public:
 
     int Start()
     {
-        if (m_ThreadId != -1)
+        if (m_Thread.joinable())
             return -1;
 
-        return (m_ThreadId = activate());
+        try
+        {
+            m_Thread = std::thread(&ReactorRunnable::Run, this);
+        }
+        catch (...)
+        {
+            return -1;
+        }
+
+        return 0;
     }
 
-    void Wait() { ACE_Task_Base::wait(); }
+    void Wait()
+    {
+        if (m_Thread.joinable())
+            m_Thread.join();
+    }
 
     long Connections()
     {
@@ -137,7 +150,7 @@ protected:
         m_NewSockets.clear();
     }
 
-    virtual int svc()
+    void Run()
     {
         SF_LOG_DEBUG("misc", "Network Thread Starting");
 
@@ -177,8 +190,6 @@ protected:
         }
 
         SF_LOG_DEBUG("misc", "Network Thread exits");
-
-        return 0;
     }
 
 private:
@@ -187,7 +198,7 @@ private:
 
     ACE_Reactor* m_Reactor;
     AtomicInt m_Connections;
-    int m_ThreadId;
+    std::thread m_Thread;
 
     SocketSet m_Sockets;
 
@@ -210,7 +221,7 @@ WorldSocketMgr::~WorldSocketMgr()
 }
 
 int
-WorldSocketMgr::StartReactiveIO(ACE_UINT16 port, const char* address)
+WorldSocketMgr::StartReactiveIO(uint16 port, const char* address)
 {
     m_UseNoDelay = sConfigMgr->GetBoolDefault("Network.TcpNodelay", true);
 
@@ -256,7 +267,7 @@ WorldSocketMgr::StartReactiveIO(ACE_UINT16 port, const char* address)
 }
 
 int
-WorldSocketMgr::StartNetwork(ACE_UINT16 port, const char* address)
+WorldSocketMgr::StartNetwork(uint16 port, const char* address)
 {
     if (!sLog->ShouldLog("misc", LogLevel::LOG_LEVEL_DEBUG))
         ACE_Log_Msg::instance()->priority_mask(LM_ERROR, ACE_Log_Msg::PROCESS);

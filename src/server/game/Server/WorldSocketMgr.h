@@ -12,13 +12,11 @@
 #ifndef SF_WORLDSOCKETMGR_H
 #define SF_WORLDSOCKETMGR_H
 
+#include "Common.h"
 #include "Platform/Singleton.h"
-
-#include <ace/Basic_Types.h>
 
 class WorldSocket;
 class ReactorRunnable;
-class ACE_Event_Handler;
 
 /// Manages all sockets connected to peers and network threads
 class WorldSocketMgr
@@ -28,7 +26,7 @@ public:
     friend class Skyfire::Singleton<WorldSocketMgr, Skyfire::Mutex>;
 
     /// Start network, listen at address:port .
-    int StartNetwork(ACE_UINT16 port, const char* address);
+    int StartNetwork(uint16 port, const char* address);
 
     /// Stops all network threads, It will wait for all running threads .
     void StopNetwork();
@@ -39,7 +37,7 @@ public:
 private:
     int OnSocketOpen(WorldSocket* sock);
 
-    int StartReactiveIO(ACE_UINT16 port, const char* address);
+    int StartReactiveIO(uint16 port, const char* address);
 
 private:
     WorldSocketMgr();
