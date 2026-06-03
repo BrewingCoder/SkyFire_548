@@ -11,7 +11,7 @@
 #include <windows.h>
 #include <winsvc.h>
 
-// stupid ACE define
+// Avoid third-party main macro collisions.
 #ifdef main
 #undef main
 #endif //main

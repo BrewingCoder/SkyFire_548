@@ -6,96 +6,23 @@
 #include "Log.h"
 #include "WorldSocketAcceptor.h"
 #include "WorldSocketMgr.h"
+#include <boost/asio/error.hpp>
+#include <boost/asio/ip/address.hpp>
+#include <boost/asio/socket_base.hpp>
+#include <boost/system/error_code.hpp>
 #include <memory>
-
-#if PLATFORM == PLATFORM_WINDOWS
-#include <ws2tcpip.h>
-#else
-#include <arpa/inet.h>
-#include <cerrno>
-#include <fcntl.h>
-#include <sys/socket.h>
-#include <unistd.h>
-#endif
 
 namespace
 {
-#if PLATFORM == PLATFORM_WINDOWS
-    bool IsValidSocket(WorldSocketHandle socket)
+    bool IsWouldBlock(boost::system::error_code const& error)
     {
-        return socket != INVALID_SOCKET;
-    }
-
-    int LastSocketError()
-    {
-        return WSAGetLastError();
-    }
-
-    void CloseSocketHandle(WorldSocketHandle socket)
-    {
-        if (IsValidSocket(socket))
-            closesocket(socket);
-    }
-
-    bool EnsureSocketLibrary()
-    {
-        static bool initialized = []() -> bool
-        {
-            WSADATA data;
-            return WSAStartup(MAKEWORD(2, 2), &data) == 0;
-        }();
-
-        return initialized;
-    }
-
-    bool SetNonBlocking(WorldSocketHandle socket)
-    {
-        u_long mode = 1;
-        return ioctlsocket(socket, FIONBIO, &mode) == 0;
-    }
-#else
-    bool IsValidSocket(WorldSocketHandle socket)
-    {
-        return socket >= 0;
-    }
-
-    int LastSocketError()
-    {
-        return errno;
-    }
-
-    void CloseSocketHandle(WorldSocketHandle socket)
-    {
-        if (IsValidSocket(socket))
-            close(socket);
-    }
-
-    bool EnsureSocketLibrary()
-    {
-        return true;
-    }
-
-    bool SetNonBlocking(WorldSocketHandle socket)
-    {
-        int flags = fcntl(socket, F_GETFL, 0);
-        return flags >= 0 && fcntl(socket, F_SETFL, flags | O_NONBLOCK) == 0;
-    }
-#endif
-
-    std::string GetPeerAddress(sockaddr_in const& addr)
-    {
-        char host[INET_ADDRSTRLEN] = {};
-        inet_ntop(AF_INET, &addr.sin_addr, host, sizeof(host));
-        return host;
+        return error == boost::asio::error::would_block || error == boost::asio::error::try_again;
     }
 }
 
 WorldSocketAcceptor::WorldSocketAcceptor() :
-#if PLATFORM == PLATFORM_WINDOWS
-    m_ListenSocket(INVALID_SOCKET)
-#else
-    m_ListenSocket(-1)
-#endif
+    m_IoContext(),
+    m_Acceptor(m_IoContext)
 {
 }
 
@@ -106,50 +33,52 @@ WorldSocketAcceptor::~WorldSocketAcceptor()
 
 bool WorldSocketAcceptor::Open(uint16 port, const char* address)
 {
-    if (!EnsureSocketLibrary())
+    boost::system::error_code error;
+    boost::asio::ip::address bindAddress = boost::asio::ip::make_address(address, error);
+    if (error)
     {
-        SF_LOG_ERROR("network", "Failed to initialize socket library");
+        SF_LOG_ERROR("network", "Invalid world bind address %s, error %d", address, error.value());
         return false;
     }
 
-    m_ListenSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (!IsValidSocket(m_ListenSocket))
+    boost::asio::ip::tcp::endpoint endpoint(bindAddress, port);
+
+    m_Acceptor.open(endpoint.protocol(), error);
+    if (error)
     {
-        SF_LOG_ERROR("network", "Failed to create world listener socket, error %d", LastSocketError());
+        SF_LOG_ERROR("network", "Failed to create world listener socket, error %d", error.value());
         return false;
     }
 
-    int reuseAddr = 1;
-    setsockopt(m_ListenSocket, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<char*>(&reuseAddr), sizeof(reuseAddr));
-
-    sockaddr_in bindAddress = {};
-    bindAddress.sin_family = AF_INET;
-    bindAddress.sin_port = htons(port);
-    if (inet_pton(AF_INET, address, &bindAddress.sin_addr) != 1)
+    m_Acceptor.set_option(boost::asio::socket_base::reuse_address(true), error);
+    if (error)
     {
-        SF_LOG_ERROR("network", "Invalid world bind address %s", address);
+        SF_LOG_ERROR("network", "Failed to set world listener reuse address, error %d", error.value());
         Close();
         return false;
     }
 
-    if (bind(m_ListenSocket, reinterpret_cast<sockaddr*>(&bindAddress), sizeof(bindAddress)) != 0)
+    m_Acceptor.bind(endpoint, error);
+    if (error)
     {
         SF_LOG_ERROR("network", "Failed to bind world listener to %s:%u, error %d",
-            address, port, LastSocketError());
+            address, port, error.value());
         Close();
         return false;
     }
 
-    if (listen(m_ListenSocket, SOMAXCONN) != 0)
+    m_Acceptor.listen(boost::asio::socket_base::max_listen_connections, error);
+    if (error)
     {
-        SF_LOG_ERROR("network", "Failed to listen on world socket, error %d", LastSocketError());
+        SF_LOG_ERROR("network", "Failed to listen on world socket, error %d", error.value());
         Close();
         return false;
     }
 
-    if (!SetNonBlocking(m_ListenSocket))
+    m_Acceptor.non_blocking(true, error);
+    if (error)
     {
-        SF_LOG_ERROR("network", "Failed to set world listener nonblocking, error %d", LastSocketError());
+        SF_LOG_ERROR("network", "Failed to set world listener nonblocking, error %d", error.value());
         Close();
         return false;
     }
@@ -159,30 +88,40 @@ bool WorldSocketAcceptor::Open(uint16 port, const char* address)
 
 void WorldSocketAcceptor::Close()
 {
-    CloseSocketHandle(m_ListenSocket);
-#if PLATFORM == PLATFORM_WINDOWS
-    m_ListenSocket = INVALID_SOCKET;
-#else
-    m_ListenSocket = -1;
-#endif
+    boost::system::error_code ignored;
+    m_Acceptor.close(ignored);
 }
 
 void WorldSocketAcceptor::Update()
 {
-    if (!IsValidSocket(m_ListenSocket))
+    if (!m_Acceptor.is_open())
         return;
 
     while (true)
     {
-        sockaddr_in clientAddress = {};
-        socklen_t clientAddressSize = sizeof(clientAddress);
-        WorldSocketHandle clientSocket = accept(m_ListenSocket, reinterpret_cast<sockaddr*>(&clientAddress), &clientAddressSize);
-        if (!IsValidSocket(clientSocket))
+        boost::system::error_code error;
+        std::unique_ptr<WorldSocketHandle> clientSocket(new WorldSocketHandle(m_IoContext));
+        m_Acceptor.accept(*clientSocket, error);
+
+        if (error)
+        {
+            if (!IsWouldBlock(error))
+                SF_LOG_ERROR("network", "Failed to accept world socket, error %d", error.value());
+
             break;
+        }
 
-        SetNonBlocking(clientSocket);
+        boost::asio::ip::tcp::endpoint remoteEndpoint = clientSocket->remote_endpoint(error);
+        std::string remoteAddress = error ? std::string("<unknown>") : remoteEndpoint.address().to_string();
 
-        std::unique_ptr<WorldSocket> socket(new WorldSocket(clientSocket, GetPeerAddress(clientAddress)));
+        clientSocket->non_blocking(true, error);
+        if (error)
+        {
+            SF_LOG_ERROR("network", "Failed to set world client nonblocking, error %d", error.value());
+            continue;
+        }
+
+        std::unique_ptr<WorldSocket> socket(new WorldSocket(std::move(clientSocket), remoteAddress));
         if (sWorldSocketMgr->OnSocketOpen(socket.get()) == -1)
         {
             socket->CloseSocket();

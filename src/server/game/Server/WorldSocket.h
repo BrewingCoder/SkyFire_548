@@ -16,18 +16,16 @@
 #include "Common.h"
 #include "Platform/Threading.h"
 #include "SharedDefines.h"
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/system/error_code.hpp>
 #include <atomic>
 #include <chrono>
 #include <deque>
+#include <memory>
 #include <mutex>
 #include <vector>
 
-#if PLATFORM == PLATFORM_WINDOWS
-#include <winsock2.h>
-typedef SOCKET WorldSocketHandle;
-#else
-typedef int WorldSocketHandle;
-#endif
+typedef boost::asio::ip::tcp::socket WorldSocketHandle;
 
 class WorldPacket;
 class WorldSession;
@@ -36,7 +34,7 @@ class WorldSession;
 class WorldSocket
 {
 public:
-    WorldSocket(WorldSocketHandle socket, std::string remoteAddress);
+    WorldSocket(std::unique_ptr<WorldSocketHandle> socket, std::string remoteAddress);
     ~WorldSocket(void);
 
     friend class WorldSocketMgr;
@@ -105,6 +103,7 @@ private:
 private:
     void SendAuthResponseError(ResponseCodes code);
     bool IsValidSocket(void) const;
+    bool IsWouldBlock(boost::system::error_code const& error) const;
     int SendBuffer(char const* data, size_t length, size_t& sent);
 
     /// Time in which the last ping was received
@@ -150,7 +149,8 @@ private:
 
     std::array<uint8, 4> m_Seed;
 
-    WorldSocketHandle m_Socket;
+    std::unique_ptr<WorldSocketHandle> m_Socket;
+    boost::system::error_code m_LastSocketError;
     std::atomic<long> m_ReferenceCount;
     std::atomic<bool> m_Closed;
 

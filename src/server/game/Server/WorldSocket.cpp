@@ -22,67 +22,13 @@
 #include "WorldSession.h"
 #include "WorldSocket.h"
 #include "WorldSocketMgr.h"
+#include <boost/asio/buffer.hpp>
+#include <boost/asio/error.hpp>
 #include <algorithm>
 #include <cerrno>
 #include <chrono>
 #include <new>
 #include <thread>
-
-#if PLATFORM == PLATFORM_WINDOWS
-#include <ws2tcpip.h>
-#else
-#include <arpa/inet.h>
-#include <netinet/tcp.h>
-#include <sys/socket.h>
-#include <unistd.h>
-#endif
-
-namespace
-{
-#if PLATFORM == PLATFORM_WINDOWS
-    bool IsValidSocketHandle(WorldSocketHandle socket)
-    {
-        return socket != INVALID_SOCKET;
-    }
-
-    int LastSocketError()
-    {
-        return WSAGetLastError();
-    }
-
-    bool WouldBlock(int error)
-    {
-        return error == WSAEWOULDBLOCK;
-    }
-
-    void CloseSocketHandle(WorldSocketHandle socket)
-    {
-        if (IsValidSocketHandle(socket))
-            closesocket(socket);
-    }
-#else
-    bool IsValidSocketHandle(WorldSocketHandle socket)
-    {
-        return socket >= 0;
-    }
-
-    int LastSocketError()
-    {
-        return errno;
-    }
-
-    bool WouldBlock(int error)
-    {
-        return error == EWOULDBLOCK || error == EAGAIN;
-    }
-
-    void CloseSocketHandle(WorldSocketHandle socket)
-    {
-        if (IsValidSocketHandle(socket))
-            close(socket);
-    }
-#endif
-}
 
 #if defined(__GNUC__)
 #pragma pack(1)
@@ -135,12 +81,12 @@ struct WorldClientPktHeader
 #pragma pack(pop)
 #endif
 
-WorldSocket::WorldSocket(WorldSocketHandle socket, std::string remoteAddress) :
+WorldSocket::WorldSocket(std::unique_ptr<WorldSocketHandle> socket, std::string remoteAddress) :
 m_LastPingTime(), m_HasLastPingTime(false), m_OverSpeedPings(0), m_Address(std::move(remoteAddress)),
 m_Session(0), m_RecvWPct(0), m_RecvPctRead(0), m_Header(sizeof(AuthClientPktHeader)),
 m_HeaderRead(0), m_WorldHeader(sizeof(WorldClientPktHeader)), m_WorldHeaderRead(0),
 m_OutBuffer(), m_OutBufferReadPos(0), m_OutQueue(), m_OutBufferSize(65536),
-m_Socket(socket), m_ReferenceCount(0), m_Closed(false)
+m_Socket(std::move(socket)), m_LastSocketError(), m_ReferenceCount(0), m_Closed(false)
 {
     SkyFire::Crypto::GetRandomBytes(m_Seed);
 }
@@ -165,12 +111,12 @@ void WorldSocket::CloseSocket(void)
             return;
     }
 
-#if PLATFORM == PLATFORM_WINDOWS
-    ::shutdown(m_Socket, SD_BOTH);
-#else
-    ::shutdown(m_Socket, SHUT_RDWR);
-#endif
-    CloseSocketHandle(m_Socket);
+    if (m_Socket && m_Socket->is_open())
+    {
+        boost::system::error_code ignored;
+        m_Socket->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored);
+        m_Socket->close(ignored);
+    }
 
     {
         GuardType Guard(m_SessionLock);
@@ -192,26 +138,32 @@ bool WorldSocket::HasPendingOutput(void) const
 
 bool WorldSocket::IsValidSocket(void) const
 {
-    return IsValidSocketHandle(m_Socket);
+    return m_Socket && m_Socket->is_open();
+}
+
+bool WorldSocket::IsWouldBlock(boost::system::error_code const& error) const
+{
+    return error == boost::asio::error::would_block || error == boost::asio::error::try_again;
 }
 
 int WorldSocket::SendBuffer(char const* data, size_t length, size_t& sent)
 {
     sent = 0;
+    m_LastSocketError.clear();
 
-#ifdef MSG_NOSIGNAL
-    ssize_t n = ::send(m_Socket, data, length, MSG_NOSIGNAL);
-#else
-    int n = ::send(m_Socket, data, int(length), 0);
-#endif
+    if (!IsValidSocket())
+        return -1;
 
-    if (n > 0)
+    boost::system::error_code error;
+    sent = m_Socket->write_some(boost::asio::buffer(data, length), error);
+    m_LastSocketError = error;
+
+    if (!error && sent > 0)
     {
-        sent = size_t(n);
         return 1;
     }
 
-    if (n == 0)
+    if (!error)
         return 0;
 
     return -1;
@@ -307,17 +259,19 @@ int WorldSocket::Read(void)
     if (m_Closed)
         return -1;
 
+    errno = 0;
+    m_LastSocketError.clear();
+
     switch (handle_input_missing_data())
     {
         case -1:
         {
-            int const socketError = LastSocketError();
-            if (WouldBlock(socketError) || errno == EWOULDBLOCK || errno == EAGAIN)
+            if (IsWouldBlock(m_LastSocketError) || errno == EWOULDBLOCK || errno == EAGAIN)
             {
                 return Update();                           // interesting line, isn't it ?
             }
 
-            SF_LOG_DEBUG("network", "WorldSocket::Read: Peer error closing connection errno = %d", socketError);
+            SF_LOG_DEBUG("network", "WorldSocket::Read: Peer error closing connection errno = %d", m_LastSocketError.value());
             return -1;
         }
         case 0:
@@ -353,7 +307,7 @@ int WorldSocket::handle_output(void)
         return -1;
     else if (sendResult == -1)
     {
-        if (WouldBlock(LastSocketError()))
+        if (IsWouldBlock(m_LastSocketError))
             return 0;
 
         return -1;
@@ -386,7 +340,7 @@ int WorldSocket::handle_output_queue(GuardType& g)
         return -1;
     else if (sendResult == -1)
     {
-        if (WouldBlock(LastSocketError()))
+        if (IsWouldBlock(m_LastSocketError))
             return 0;
 
         return -1;
@@ -552,13 +506,29 @@ int WorldSocket::handle_input_missing_data(void)
 {
     char buf[4096];
 
-    const size_t recv_size = sizeof(buf);
-    int n = ::recv(m_Socket, buf, int(recv_size), 0);
+    if (!IsValidSocket())
+        return -1;
 
-    if (n <= 0)
-        return int(n);
+    boost::system::error_code error;
+    size_t n = m_Socket->read_some(boost::asio::buffer(buf), error);
+    m_LastSocketError = error;
 
-    return handle_input_missing_data(buf, size_t(n));
+    if (error)
+    {
+        if (IsWouldBlock(error))
+            return -1;
+
+        if (error == boost::asio::error::eof)
+            return 0;
+
+        return -1;
+    }
+
+    if (n == 0)
+        return 0;
+
+    m_LastSocketError.clear();
+    return handle_input_missing_data(buf, n);
 }
 
 int WorldSocket::handle_input_missing_data(char const* data, size_t length)

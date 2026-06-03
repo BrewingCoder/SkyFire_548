@@ -3,7 +3,7 @@
 * See LICENSE.md file for Copyright information
 */
  
-#include "WorldSocket.h"        // must be first to make ACE happy with ACE includes in it
+#include "WorldSocket.h"
 
 #include "Common.h"
 #include "World.h"

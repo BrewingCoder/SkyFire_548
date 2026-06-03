@@ -13,6 +13,8 @@
 
 #include "Common.h"
 #include "WorldSocket.h"
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/ip/tcp.hpp>
 
 class WorldSocketAcceptor
 {
@@ -25,7 +27,8 @@ public:
     void Update();
 
 private:
-    WorldSocketHandle m_ListenSocket;
+    boost::asio::io_context m_IoContext;
+    boost::asio::ip::tcp::acceptor m_Acceptor;
 };
 
 #endif /* __WORLDSOCKETACCEPTOR_H_ */

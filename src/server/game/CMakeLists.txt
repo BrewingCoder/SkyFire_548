@@ -247,6 +247,7 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/Warden/Modules
   ${CMAKE_CURRENT_SOURCE_DIR}/Weather
   ${CMAKE_CURRENT_SOURCE_DIR}/World
+  ${Boost_INCLUDE_DIRS}
   ${MYSQL_INCLUDE_DIR}
   ${OPENSSL_INCLUDE_DIR}
 )
@@ -255,6 +256,12 @@ add_library(game STATIC
   ${game_STAT_SRCS}
   ${game_STAT_PCH_SRC}
 )
+
+if(TARGET Boost::headers)
+  target_link_libraries(game Boost::headers)
+elseif(TARGET Boost::boost)
+  target_link_libraries(game Boost::boost)
+endif()
 
 add_dependencies(game revision.h)
 

@@ -22,30 +22,7 @@
 #include "ScriptMgr.h"
 #include "WorldSocket.h"
 #include "WorldSocketAcceptor.h"
-
-#if PLATFORM == PLATFORM_WINDOWS
-#include <ws2tcpip.h>
-#else
-#include <cerrno>
-#include <netinet/tcp.h>
-#include <sys/select.h>
-#include <sys/socket.h>
-#endif
-
-namespace
-{
-#if PLATFORM == PLATFORM_WINDOWS
-    int LastSocketError()
-    {
-        return WSAGetLastError();
-    }
-#else
-    int LastSocketError()
-    {
-        return errno;
-    }
-#endif
-}
+#include <boost/asio/socket_base.hpp>
 
 /**
 * This is a helper class to WorldSocketMgr, that manages
@@ -158,38 +135,7 @@ protected:
 
             AddNewSockets();
 
-            fd_set readSet;
-            fd_set writeSet;
-            FD_ZERO(&readSet);
-            FD_ZERO(&writeSet);
-
-            WorldSocketHandle maxHandle = 0;
-            bool hasSockets = false;
-
-            for (WorldSocket* socket : m_Sockets)
-            {
-                if (socket->IsClosed() || !socket->IsValidSocket())
-                    continue;
-
-                FD_SET(socket->m_Socket, &readSet);
-                if (socket->HasPendingOutput())
-                    FD_SET(socket->m_Socket, &writeSet);
-
-                if (!hasSockets || socket->m_Socket > maxHandle)
-                    maxHandle = socket->m_Socket;
-
-                hasSockets = true;
-            }
-
-            if (hasSockets)
-            {
-                timeval interval = {};
-                interval.tv_sec = 0;
-                interval.tv_usec = 10000;
-                select(int(maxHandle + 1), &readSet, &writeSet, NULL, &interval);
-            }
-            else
-                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
 
             for (i = m_Sockets.begin(); i != m_Sockets.end();)
             {
@@ -200,15 +146,11 @@ protected:
                     result = -1;
                 else
                 {
-                    if (hasSockets && FD_ISSET(socket->m_Socket, &readSet))
-                    {
-                        do
-                            result = socket->Read();
-                        while (result > 0);
-                    }
+                    do
+                        result = socket->Read();
+                    while (result > 0);
 
-                    if (result != -1 && socket->HasPendingOutput() &&
-                        (!hasSockets || FD_ISSET(socket->m_Socket, &writeSet)))
+                    if (result != -1 && socket->HasPendingOutput())
                         result = socket->Update();
                 }
 
@@ -352,27 +294,23 @@ WorldSocketMgr::OnSocketOpen(WorldSocket* sock)
     // set some options here
     if (m_SockOutKBuff >= 0)
     {
-        if (setsockopt(sock->m_Socket, SOL_SOCKET,
-            SO_SNDBUF,
-            reinterpret_cast<char*>(&m_SockOutKBuff),
-            sizeof(int)) == -1)
+        boost::system::error_code error;
+        sock->m_Socket->set_option(boost::asio::socket_base::send_buffer_size(m_SockOutKBuff), error);
+        if (error)
         {
-            SF_LOG_ERROR("misc", "WorldSocketMgr::OnSocketOpen set_option SO_SNDBUF");
+            SF_LOG_ERROR("misc", "WorldSocketMgr::OnSocketOpen set_option SO_SNDBUF error = %d", error.value());
             return -1;
         }
     }
 
-    static const int ndoption = 1;
-
     // Set TCP_NODELAY.
     if (m_UseNoDelay)
     {
-        if (setsockopt(sock->m_Socket, IPPROTO_TCP,
-            TCP_NODELAY,
-            reinterpret_cast<char const*>(&ndoption),
-            sizeof(int)) == -1)
+        boost::system::error_code error;
+        sock->m_Socket->set_option(boost::asio::ip::tcp::no_delay(true), error);
+        if (error)
         {
-            SF_LOG_ERROR("misc", "WorldSocketMgr::OnSocketOpen: setsockopt TCP_NODELAY errno = %d", LastSocketError());
+            SF_LOG_ERROR("misc", "WorldSocketMgr::OnSocketOpen: set_option TCP_NODELAY error = %d", error.value());
             return -1;
         }
     }
