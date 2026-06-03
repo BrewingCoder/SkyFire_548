@@ -13,33 +13,62 @@
 #include "RARunnable.h"
 #include "World.h"
 
-#include <ace/Acceptor.h>
-#include <ace/Dev_Poll_Reactor.h>
-#include <ace/Reactor_Impl.h>
-#include <ace/SOCK_Acceptor.h>
-#include <ace/TP_Reactor.h>
-
 #include "RASocket.h"
 
-RARunnable::RARunnable()
-{
-    ACE_Reactor_Impl* imp;
+#include <cstring>
 
-#if defined (ACE_HAS_EVENT_POLL) || defined (ACE_HAS_DEV_POLL)
-    imp = new ACE_Dev_Poll_Reactor();
-    imp->max_notify_iterations(128);
-    imp->restart(1);
+namespace
+{
+    int LastSocketError()
+    {
+#if PLATFORM == PLATFORM_WINDOWS
+        return WSAGetLastError();
 #else
-    imp = new ACE_TP_Reactor();
-    imp->max_notify_iterations(128);
+        return errno;
 #endif
+    }
 
-    m_Reactor = new ACE_Reactor(imp, 1);
-}
+    void CloseSocket(RASocketHandle socket)
+    {
+#if PLATFORM == PLATFORM_WINDOWS
+        closesocket(socket);
+#else
+        close(socket);
+#endif
+    }
 
-RARunnable::~RARunnable()
-{
-    delete m_Reactor;
+    bool IsValidSocket(RASocketHandle socket)
+    {
+#if PLATFORM == PLATFORM_WINDOWS
+        return socket != INVALID_SOCKET;
+#else
+        return socket >= 0;
+#endif
+    }
+
+    bool SetReuseAddress(RASocketHandle socket)
+    {
+        int enabled = 1;
+        return setsockopt(socket, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<char*>(&enabled), sizeof(enabled)) == 0;
+    }
+
+    std::string FormatAddress(sockaddr_storage const& address)
+    {
+        char buffer[INET6_ADDRSTRLEN] = { 0 };
+
+        if (address.ss_family == AF_INET)
+        {
+            sockaddr_in const* ipv4 = reinterpret_cast<sockaddr_in const*>(&address);
+            inet_ntop(AF_INET, &ipv4->sin_addr, buffer, sizeof(buffer));
+        }
+        else if (address.ss_family == AF_INET6)
+        {
+            sockaddr_in6 const* ipv6 = reinterpret_cast<sockaddr_in6 const*>(&address);
+            inet_ntop(AF_INET6, &ipv6->sin6_addr, buffer, sizeof(buffer));
+        }
+
+        return buffer;
+    }
 }
 
 void RARunnable::run()
@@ -47,15 +76,54 @@ void RARunnable::run()
     if (!sConfigMgr->GetBoolDefault("Ra.Enable", false))
         return;
 
-    ACE_Acceptor<RASocket, ACE_SOCK_ACCEPTOR> acceptor;
-
     uint16 raPort = uint16(sConfigMgr->GetIntDefault("Ra.Port", 3443));
     std::string stringIp = sConfigMgr->GetStringDefault("Ra.IP", "0.0.0.0");
-    ACE_INET_Addr listenAddress(raPort, stringIp.c_str());
 
-    if (acceptor.open(listenAddress, m_Reactor) == -1)
+    addrinfo hints;
+    std::memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+    hints.ai_flags = AI_PASSIVE;
+
+    addrinfo* result = NULL;
+    std::string port = std::to_string(raPort);
+    if (getaddrinfo(stringIp.c_str(), port.c_str(), &hints, &result) != 0)
     {
-        SF_LOG_ERROR("server.worldserver", "Skyfire RA can not bind to port %d on %s", raPort, stringIp.c_str());
+        SF_LOG_ERROR("server.worldserver", "Skyfire RA can not resolve bind address %s:%d", stringIp.c_str(), raPort);
+        return;
+    }
+
+#if PLATFORM == PLATFORM_WINDOWS
+    RASocketHandle listenSocket = INVALID_SOCKET;
+#else
+    RASocketHandle listenSocket = -1;
+#endif
+
+    for (addrinfo* address = result; address; address = address->ai_next)
+    {
+        listenSocket = ::socket(address->ai_family, address->ai_socktype, address->ai_protocol);
+        if (!IsValidSocket(listenSocket))
+            continue;
+
+        SetReuseAddress(listenSocket);
+
+        if (::bind(listenSocket, address->ai_addr, int(address->ai_addrlen)) == 0 &&
+            ::listen(listenSocket, SOMAXCONN) == 0)
+            break;
+
+        CloseSocket(listenSocket);
+#if PLATFORM == PLATFORM_WINDOWS
+        listenSocket = INVALID_SOCKET;
+#else
+        listenSocket = -1;
+#endif
+    }
+
+    freeaddrinfo(result);
+
+    if (!IsValidSocket(listenSocket))
+    {
+        SF_LOG_ERROR("server.worldserver", "Skyfire RA can not bind to port %d on %s, error %d", raPort, stringIp.c_str(), LastSocketError());
         return;
     }
 
@@ -63,10 +131,31 @@ void RARunnable::run()
 
     while (!World::IsStopped())
     {
-        ACE_Time_Value interval(0, 100000);
-        if (m_Reactor->run_reactor_event_loop(interval) == -1)
-            break;
+        fd_set readSet;
+        FD_ZERO(&readSet);
+        FD_SET(listenSocket, &readSet);
+
+        timeval interval;
+        interval.tv_sec = 0;
+        interval.tv_usec = 100000;
+
+        int ready = select(int(listenSocket + 1), &readSet, NULL, NULL, &interval);
+        if (ready <= 0)
+            continue;
+
+        sockaddr_storage remoteAddress;
+        socklen_t remoteLength = sizeof(remoteAddress);
+        RASocketHandle clientSocket = accept(listenSocket, reinterpret_cast<sockaddr*>(&remoteAddress), &remoteLength);
+        if (!IsValidSocket(clientSocket))
+            continue;
+
+        std::string remote = FormatAddress(remoteAddress);
+        SF_LOG_INFO("commands.ra", "Incoming connection from %s", remote.c_str());
+
+        (new RASocket(clientSocket, remote))->start();
     }
+
+    CloseSocket(listenSocket);
 
     SF_LOG_DEBUG("server.worldserver", "Skyfire RA thread exiting");
 }
