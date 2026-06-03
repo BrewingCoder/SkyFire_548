@@ -3,8 +3,6 @@
 * See LICENSE.md file for Copyright information
 */
 
-#include <ace/Log_Msg.h>
-
 #include "DelayExecutor.h"
 #include "Platform/Singleton.h"
 
@@ -14,27 +12,33 @@ DelayExecutor* DelayExecutor::instance()
 }
 
 DelayExecutor::DelayExecutor()
-    : pre_svc_hook_(0), post_svc_hook_(0), activated_(false) { }
+    : activated_(false) { }
 
 DelayExecutor::~DelayExecutor()
 {
-    if (pre_svc_hook_)
-        delete pre_svc_hook_;
-
-    if (post_svc_hook_)
-        delete post_svc_hook_;
-
     deactivate();
 }
 
 int DelayExecutor::deactivate()
 {
-    if (!activated())
-        return -1;
+    {
+        std::lock_guard<std::mutex> guard(queue_lock_);
 
-    activated(false);
-    queue_.queue()->deactivate();
-    wait();
+        if (!activated_)
+            return -1;
+
+        activated_ = false;
+    }
+
+    condition_.notify_all();
+
+    for (std::thread& thread : threads_)
+        if (thread.joinable())
+            thread.join();
+
+    threads_.clear();
+    pre_svc_hook_.reset();
+    post_svc_hook_.reset();
 
     return 0;
 }
@@ -46,13 +50,20 @@ int DelayExecutor::svc()
 
     for (;;)
     {
-        ACE_Method_Request* rq = queue_.dequeue();
+        std::unique_ptr<DelayTask> rq;
 
-        if (!rq)
-            break;
+        {
+            std::unique_lock<std::mutex> lock(queue_lock_);
+            condition_.wait(lock, [this] { return !queue_.empty() || !activated_; });
+
+            if (queue_.empty())
+                break;
+
+            rq = std::move(queue_.front());
+            queue_.pop();
+        }
 
         rq->call();
-        delete rq;
     }
 
     if (post_svc_hook_)
@@ -61,7 +72,7 @@ int DelayExecutor::svc()
     return 0;
 }
 
-int DelayExecutor::start(int num_threads, ACE_Method_Request* pre_svc_hook, ACE_Method_Request* post_svc_hook)
+int DelayExecutor::start(int num_threads, std::unique_ptr<DelayTask> pre_svc_hook, std::unique_ptr<DelayTask> post_svc_hook)
 {
     if (activated())
         return -1;
@@ -69,45 +80,51 @@ int DelayExecutor::start(int num_threads, ACE_Method_Request* pre_svc_hook, ACE_
     if (num_threads < 1)
         return -1;
 
-    if (pre_svc_hook_)
-        delete pre_svc_hook_;
-
-    if (post_svc_hook_)
-        delete post_svc_hook_;
-
-    pre_svc_hook_ = pre_svc_hook;
-    post_svc_hook_ = post_svc_hook;
-
-    queue_.queue()->activate();
-
-    if (ACE_Task_Base::activate(THR_NEW_LWP | THR_JOINABLE | THR_INHERIT_SCHED, num_threads) == -1)
-        return -1;
+    pre_svc_hook_ = std::move(pre_svc_hook);
+    post_svc_hook_ = std::move(post_svc_hook);
 
     activated(true);
 
-    return true;
-}
-
-int DelayExecutor::execute(ACE_Method_Request* new_req)
-{
-    if (new_req == NULL)
-        return -1;
-
-    if (queue_.enqueue(new_req, (ACE_Time_Value*)&ACE_Time_Value::zero) == -1)
+    try
     {
-        delete new_req;
-        ACE_ERROR_RETURN((LM_ERROR, ACE_TEXT("(%t) %p\n"), ACE_TEXT("DelayExecutor::execute enqueue")), -1);
+        for (int i = 0; i < num_threads; ++i)
+            threads_.push_back(std::thread(&DelayExecutor::svc, this));
+    }
+    catch (...)
+    {
+        deactivate();
+        return -1;
     }
 
     return 0;
 }
 
+int DelayExecutor::execute(std::unique_ptr<DelayTask> new_req)
+{
+    if (!new_req)
+        return -1;
+
+    {
+        std::lock_guard<std::mutex> guard(queue_lock_);
+
+        if (!activated_)
+            return -1;
+
+        queue_.push(std::move(new_req));
+    }
+
+    condition_.notify_one();
+    return 0;
+}
+
 bool DelayExecutor::activated()
 {
+    std::lock_guard<std::mutex> guard(queue_lock_);
     return activated_;
 }
 
 void DelayExecutor::activated(bool s)
 {
+    std::lock_guard<std::mutex> guard(queue_lock_);
     activated_ = s;
 }

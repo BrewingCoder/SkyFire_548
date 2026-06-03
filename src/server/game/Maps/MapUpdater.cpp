@@ -8,9 +8,7 @@
 #include "Map.h"
 #include "MapUpdater.h"
 
-#include <ace/Method_Request.h>
-
-class WDBThreadStartReq1 : public ACE_Method_Request
+class WDBThreadStartReq1 : public DelayTask
 {
 public:
     WDBThreadStartReq1() { }
@@ -18,7 +16,7 @@ public:
     virtual int call() { return 0; }
 };
 
-class WDBThreadEndReq1 : public ACE_Method_Request
+class WDBThreadEndReq1 : public DelayTask
 {
 public:
     WDBThreadEndReq1() { }
@@ -26,7 +24,7 @@ public:
     virtual int call() { return 0; }
 };
 
-class MapUpdateRequest : public ACE_Method_Request
+class MapUpdateRequest : public DelayTask
 {
 private:
     Map& m_map;
@@ -55,7 +53,7 @@ MapUpdater::~MapUpdater()
 
 int MapUpdater::activate(size_t num_threads)
 {
-    return m_executor.start((int)num_threads, new WDBThreadStartReq1, new WDBThreadEndReq1);
+    return m_executor.start((int)num_threads, std::unique_ptr<DelayTask>(new WDBThreadStartReq1), std::unique_ptr<DelayTask>(new WDBThreadEndReq1));
 }
 
 int MapUpdater::deactivate()
@@ -82,7 +80,7 @@ int MapUpdater::schedule_update(Map& map, ACE_UINT32 diff)
 
     ++pending_requests;
 
-    if (m_executor.execute(new MapUpdateRequest(map, *this, diff)) == -1)
+    if (m_executor.execute(std::unique_ptr<DelayTask>(new MapUpdateRequest(map, *this, diff))) == -1)
     {
         ACE_DEBUG((LM_ERROR, ACE_TEXT("(%t) \n"), ACE_TEXT("Failed to schedule Map Update")));
 

@@ -6,26 +6,39 @@
 #ifndef _M_DELAY_EXECUTOR_H
 #define _M_DELAY_EXECUTOR_H
 
-#include <ace/Activation_Queue.h>
-#include <ace/Method_Request.h>
-#include <ace/Task.h>
+#include <condition_variable>
+#include <memory>
+#include <mutex>
+#include <queue>
+#include <thread>
+#include <vector>
 
-class DelayExecutor : protected ACE_Task_Base
+class DelayTask
+{
+public:
+    virtual ~DelayTask() { }
+    virtual int call() = 0;
+};
+
+class DelayExecutor
 {
 public:
     DelayExecutor();
     virtual ~DelayExecutor();
     static DelayExecutor* instance();
-    int execute(ACE_Method_Request* new_req);
-    int start(int num_threads = 1, ACE_Method_Request* pre_svc_hook = NULL, ACE_Method_Request* post_svc_hook = NULL);
+    int execute(std::unique_ptr<DelayTask> new_req);
+    int start(int num_threads = 1, std::unique_ptr<DelayTask> pre_svc_hook = std::unique_ptr<DelayTask>(), std::unique_ptr<DelayTask> post_svc_hook = std::unique_ptr<DelayTask>());
     int deactivate();
     bool activated();
-    virtual int svc();
+    int svc();
 
 private:
-    ACE_Activation_Queue queue_;
-    ACE_Method_Request* pre_svc_hook_;
-    ACE_Method_Request* post_svc_hook_;
+    std::queue<std::unique_ptr<DelayTask> > queue_;
+    std::unique_ptr<DelayTask> pre_svc_hook_;
+    std::unique_ptr<DelayTask> post_svc_hook_;
+    std::vector<std::thread> threads_;
+    std::mutex queue_lock_;
+    std::condition_variable condition_;
     bool activated_;
 
     void activated(bool s);
