@@ -8,9 +8,9 @@
 
 #include "Define.h"
 
-#include <ace/Semaphore.h>
-#include <ace/Task.h>
 #include <Threading.h>
+#include <condition_variable>
+#include <mutex>
 
 class SFSoapRunnable : public ACE_Based::Runnable
 {
@@ -26,7 +26,7 @@ public:
     }
 
 private:
-    void process_message(ACE_Message_Block* mb);
+    void process_message(struct soap* soap);
 
     std::string _host;
     uint16 _port;
@@ -36,7 +36,7 @@ class SOAPCommand
 {
 public:
     SOAPCommand() :
-        pendingCommands(0, USYNC_THREAD, "pendingCommands"), m_success(false)
+        m_completed(false), m_success(false)
     {
     }
 
@@ -49,7 +49,22 @@ public:
         m_printBuffer += msg;
     }
 
-    ACE_Semaphore pendingCommands;
+    void wait()
+    {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        m_condition.wait(lock, [this] { return m_completed; });
+    }
+
+    void complete(bool success)
+    {
+        {
+            std::lock_guard<std::mutex> guard(m_mutex);
+            m_success = success;
+            m_completed = true;
+        }
+
+        m_condition.notify_one();
+    }
 
     void setCommandSuccess(bool val)
     {
@@ -70,6 +85,11 @@ public:
 
     bool m_success;
     std::string m_printBuffer;
+
+private:
+    std::mutex m_mutex;
+    std::condition_variable m_condition;
+    bool m_completed;
 };
 
 #endif
