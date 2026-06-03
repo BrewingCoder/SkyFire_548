@@ -9,12 +9,11 @@
 #include <AutoPtr.h>
 #include "Platform/Singleton.h"
 #include <ace/Configuration_Import_Export.h>
-#include <ace/Null_Mutex.h>
 #include <list>
 #include <mutex>
 #include <string>
 
-typedef Skyfire::AutoPtr<ACE_Configuration_Heap, ACE_Null_Mutex> Config;
+typedef Skyfire::AutoPtr<ACE_Configuration_Heap, Skyfire::NullMutex> Config;
 
 class ConfigMgr
 {

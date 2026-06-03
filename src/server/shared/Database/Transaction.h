@@ -6,6 +6,7 @@
 #ifndef _TRANSACTION_H
 #define _TRANSACTION_H
 
+#include "Platform/Threading.h"
 #include "SQLOperation.h"
 
 //- Forward declare (don't include header to prevent circular includes)
@@ -38,7 +39,7 @@ private:
     bool _cleanedUp;
 };
 
-typedef Skyfire::AutoPtr<Transaction, ACE_Thread_Mutex> SQLTransaction;
+typedef Skyfire::AutoPtr<Transaction, Skyfire::Mutex> SQLTransaction;
 
 /*! Low level class*/
 class TransactionTask : public SQLOperation

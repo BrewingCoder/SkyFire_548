@@ -7,7 +7,6 @@
 #define QUERYRESULT_H
 
 #include "AutoPtr.h"
-#include <ace/Thread_Mutex.h>
 
 #include "Field.h"
 
@@ -46,7 +45,7 @@ private:
     ResultSet& operator=(ResultSet const& right) = delete;
 };
 
-typedef Skyfire::AutoPtr<ResultSet, ACE_Thread_Mutex> QueryResult;
+typedef Skyfire::AutoPtr<ResultSet, Skyfire::Mutex> QueryResult;
 
 class PreparedResultSet
 {
@@ -92,7 +91,7 @@ private:
     PreparedResultSet& operator=(PreparedResultSet const& right) = delete;
 };
 
-typedef Skyfire::AutoPtr<PreparedResultSet, ACE_Thread_Mutex> PreparedQueryResult;
+typedef Skyfire::AutoPtr<PreparedResultSet, Skyfire::Mutex> PreparedQueryResult;
 
 #endif
 

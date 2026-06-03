@@ -6,6 +6,7 @@
 #ifndef _SKYFIRE_AUTO_PTR_H
 #define _SKYFIRE_AUTO_PTR_H
 
+#include "Platform/Threading.h"
 #include <ace/Bound_Ptr.h>
 
 namespace Skyfire
