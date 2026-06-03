@@ -7,10 +7,11 @@
 #define SF_GROUPMGR_H
 
 #include "Group.h"
+#include "Platform/Singleton.h"
 
 class GroupMgr
 {
-    friend class ACE_Singleton<GroupMgr, ACE_Null_Mutex>;
+    friend class Skyfire::Singleton<GroupMgr, Skyfire::NullMutex>;
 private:
     GroupMgr() : NextGroupId(1), NextGroupDbStoreId(1) { }
     ~GroupMgr();
@@ -40,6 +41,6 @@ protected:
     GroupDbContainer GroupDbStore;
 };
 
-#define sGroupMgr ACE_Singleton<GroupMgr, ACE_Null_Mutex>::instance()
+#define sGroupMgr Skyfire::Singleton<GroupMgr, Skyfire::NullMutex>::instance()
 
 #endif

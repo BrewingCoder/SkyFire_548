@@ -8,7 +8,7 @@
 
 #include "Define.h"
 #include "Errors.h"
-#include <ace/Singleton.h>
+#include "Platform/Singleton.h"
 #include <list>
 #include <map>
 #include "SharedDefines.h"
@@ -213,7 +213,7 @@ typedef std::map<uint32, ConditionList> ConditionReferenceContainer;//only used 
 
 class ConditionMgr
 {
-    friend class ACE_Singleton<ConditionMgr, ACE_Null_Mutex>;
+    friend class Skyfire::Singleton<ConditionMgr, Skyfire::NullMutex>;
 
     private:
         ConditionMgr();
@@ -257,6 +257,6 @@ class ConditionMgr
         SmartEventConditionContainer      SmartEventConditionStore;
 };
 
-#define sConditionMgr ACE_Singleton<ConditionMgr, ACE_Null_Mutex>::instance()
+#define sConditionMgr Skyfire::Singleton<ConditionMgr, Skyfire::NullMutex>::instance()
 
 #endif

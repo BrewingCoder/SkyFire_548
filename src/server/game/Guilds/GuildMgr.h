@@ -7,10 +7,11 @@
 #define SF_GUILDMGR_H
 
 #include "Guild.h"
+#include "Platform/Singleton.h"
 
 class GuildMgr
 {
-    friend class ACE_Singleton<GuildMgr, ACE_Null_Mutex>;
+    friend class Skyfire::Singleton<GuildMgr, Skyfire::NullMutex>;
 
 private:
     GuildMgr();
@@ -49,6 +50,6 @@ protected:
     std::vector<GuildReward> GuildRewards;
 };
 
-#define sGuildMgr ACE_Singleton<GuildMgr, ACE_Null_Mutex>::instance()
+#define sGuildMgr Skyfire::Singleton<GuildMgr, Skyfire::NullMutex>::instance()
 
 #endif

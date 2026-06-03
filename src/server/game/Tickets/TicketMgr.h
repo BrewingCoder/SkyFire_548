@@ -6,10 +6,10 @@
 #ifndef SF_TICKETMGR_H
 #define SF_TICKETMGR_H
 
-#include <ace/Singleton.h>
 #include <string>
 
 #include "ObjectMgr.h"
+#include "Platform/Singleton.h"
 #include "TicketInfo.h"
 
 typedef std::map<uint32, BugTicket*> BugTicketList;
@@ -18,7 +18,7 @@ typedef std::map<uint32, SuggestTicket*> SuggestTicketList;
 
 class TicketMgr
 {
-    friend class ACE_Singleton<TicketMgr, ACE_Null_Mutex>;
+    friend class Skyfire::Singleton<TicketMgr, Skyfire::NullMutex>;
 
 private:
     TicketMgr();
@@ -114,6 +114,6 @@ private:
     uint32 _openSuggestTicketCount;
 };
 
-#define sTicketMgr ACE_Singleton<TicketMgr, ACE_Null_Mutex>::instance()
+#define sTicketMgr Skyfire::Singleton<TicketMgr, Skyfire::NullMutex>::instance()
 
 #endif // SF_TICKETMGR_H

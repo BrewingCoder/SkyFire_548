@@ -8,8 +8,8 @@
 
 #include "Common.h"
 #include "Define.h"
+#include "Platform/Singleton.h"
 #include "SharedDefines.h"
-#include <ace/Singleton.h>
 
 #define max_ge_check_delay DAY  // 1 day in seconds
 
@@ -82,7 +82,7 @@ class Quest;
 
 class GameEventMgr
 {
-    friend class ACE_Singleton<GameEventMgr, ACE_Null_Mutex>;
+    friend class Skyfire::Singleton<GameEventMgr, Skyfire::NullMutex>;
 
 private:
     GameEventMgr();
@@ -167,7 +167,7 @@ public:
     GameEventGuidMap  mGameEventGameobjectGuids;
 };
 
-#define sGameEventMgr ACE_Singleton<GameEventMgr, ACE_Null_Mutex>::instance()
+#define sGameEventMgr Skyfire::Singleton<GameEventMgr, Skyfire::NullMutex>::instance()
 
 bool IsHolidayActive(HolidayIds id);
 bool IsEventActive(uint16 event_id);

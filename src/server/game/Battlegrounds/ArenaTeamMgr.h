@@ -7,10 +7,11 @@
 #define SF_ARENATEAMMGR_H
 
 #include "ArenaTeam.h"
+#include "Platform/Singleton.h"
 
 class ArenaTeamMgr
 {
-    friend class ACE_Singleton<ArenaTeamMgr, ACE_Null_Mutex>;
+    friend class Skyfire::Singleton<ArenaTeamMgr, Skyfire::NullMutex>;
     ArenaTeamMgr() : NextArenaTeamId(1) { }
     ~ArenaTeamMgr();
 
@@ -30,6 +31,6 @@ protected:
     ArenaTeamContainer ArenaTeamStore;
 };
 
-#define sArenaTeamMgr ACE_Singleton<ArenaTeamMgr, ACE_Null_Mutex>::instance()
+#define sArenaTeamMgr Skyfire::Singleton<ArenaTeamMgr, Skyfire::NullMutex>::instance()
 
 #endif

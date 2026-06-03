@@ -8,7 +8,7 @@
 
 #include "Common.h"
 #include "DatabaseEnv.h"
-#include <ace/Singleton.h>
+#include "Platform/Singleton.h"
 
 class SocialMgr;
 class PlayerSocial;
@@ -110,7 +110,7 @@ private:
 
 class SocialMgr
 {
-    friend class ACE_Singleton<SocialMgr, ACE_Null_Mutex>;
+    friend class Skyfire::Singleton<SocialMgr, Skyfire::NullMutex>;
 
 private:
     SocialMgr() { }
@@ -131,5 +131,5 @@ private:
     SocialMap m_socialMap;
 };
 
-#define sSocialMgr ACE_Singleton<SocialMgr, ACE_Null_Mutex>::instance()
+#define sSocialMgr Skyfire::Singleton<SocialMgr, Skyfire::NullMutex>::instance()
 #endif
