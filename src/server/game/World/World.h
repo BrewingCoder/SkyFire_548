@@ -16,8 +16,8 @@
 #include "QueryResult.h"
 #include "SharedDefines.h"
 #include "Timer.h"
+#include "Platform/Singleton.h"
 #include <atomic>
-#include <ace/Singleton.h>
 
 #include <list>
 #include <map>
@@ -901,6 +901,6 @@ typedef std::map<uint32, std::string> RealmNameMap;
 extern RealmNameMap realmNameStore;
 extern uint32 realmID;
 
-#define sWorld ACE_Singleton<World, ACE_Null_Mutex>::instance()
+#define sWorld Skyfire::Singleton<World, Skyfire::NullMutex>::instance()
 #endif
 /// @}

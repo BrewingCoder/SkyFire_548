@@ -6,7 +6,6 @@
 #ifndef SF_TICKETINFO_H
 #define SF_TICKETINFO_H
 
-#include <ace/Singleton.h>
 #include <string>
 
 #include "ObjectMgr.h"

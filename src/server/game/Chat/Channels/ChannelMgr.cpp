@@ -17,13 +17,13 @@ ChannelMgr::~ChannelMgr()
 ChannelMgr* ChannelMgr::forTeam(uint32 team)
 {
     if (sWorld->GetBoolConfig(WorldBoolConfigs::CONFIG_ALLOW_TWO_SIDE_INTERACTION_CHANNEL))
-        return ACE_Singleton<AllianceChannelMgr, ACE_Null_Mutex>::instance();        // cross-faction
+        return Skyfire::Singleton<AllianceChannelMgr, Skyfire::NullMutex>::instance();        // cross-faction
 
     if (team == ALLIANCE)
-        return ACE_Singleton<AllianceChannelMgr, ACE_Null_Mutex>::instance();
+        return Skyfire::Singleton<AllianceChannelMgr, Skyfire::NullMutex>::instance();
 
     if (team == HORDE)
-        return ACE_Singleton<HordeChannelMgr, ACE_Null_Mutex>::instance();
+        return Skyfire::Singleton<HordeChannelMgr, Skyfire::NullMutex>::instance();
 
     return NULL;
 }

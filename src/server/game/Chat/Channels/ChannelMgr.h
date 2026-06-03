@@ -8,7 +8,7 @@
 
 #include "Channel.h"
 #include "Common.h"
-#include <ace/Singleton.h>
+#include "Platform/Singleton.h"
 
 #include <map>
 #include <string>

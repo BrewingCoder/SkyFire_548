@@ -8,7 +8,6 @@
 
 #include "Define.h"
 #include "Dynamic/UnorderedMap.h"
-#include <ace/Singleton.h>
 
 #include <map>
 #include <string>

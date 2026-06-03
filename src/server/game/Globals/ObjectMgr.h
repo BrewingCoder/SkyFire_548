@@ -26,7 +26,7 @@
 #include "QuestDef.h"
 #include "TemporarySummon.h"
 #include "VehicleDefines.h"
-#include <ace/Singleton.h>
+#include "Platform/Singleton.h"
 #include <functional>
 #include <limits>
 #include <map>
@@ -694,7 +694,7 @@ class PlayerDumpReader;
 class ObjectMgr
 {
     friend class PlayerDumpReader;
-    friend class ACE_Singleton<ObjectMgr, ACE_Null_Mutex>;
+    friend class Skyfire::Singleton<ObjectMgr, Skyfire::NullMutex>;
 
 private:
     ObjectMgr();
@@ -1594,7 +1594,7 @@ private:
     ResearchProjectRequirementContainer _researchProjectRequirementStore;
 };
 
-#define sObjectMgr ACE_Singleton<ObjectMgr, ACE_Null_Mutex>::instance()
+#define sObjectMgr Skyfire::Singleton<ObjectMgr, Skyfire::NullMutex>::instance()
 
 // scripting access functions
 bool LoadSkyFireStrings(char const* table, int32 start_value = MAX_CREATURE_AI_TEXT_STRING_ID, int32 end_value = std::numeric_limits<int32>::min());

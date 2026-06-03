@@ -8,9 +8,8 @@
 
 // For static or at-server-startup loaded spell data
 
-#include <ace/Singleton.h>
-
 #include "DBCStructure.h"
+#include "Platform/Singleton.h"
 #include "SharedDefines.h"
 #include "UnorderedMap.h"
 #include "Util.h"
@@ -589,7 +588,7 @@ bool IsDiminishingReturnsGroupDurationLimited(DiminishingGroup group);
 
 class SpellMgr
 {
-    friend class ACE_Singleton<SpellMgr, ACE_Null_Mutex>;
+    friend class Skyfire::Singleton<SpellMgr, Skyfire::NullMutex>;
     // Constructors
 private:
     SpellMgr();
@@ -742,6 +741,6 @@ private:
     SpellInfoMap               mSpellInfoMap;
 };
 
-#define sSpellMgr ACE_Singleton<SpellMgr, ACE_Null_Mutex>::instance()
+#define sSpellMgr Skyfire::Singleton<SpellMgr, Skyfire::NullMutex>::instance()
 
 #endif

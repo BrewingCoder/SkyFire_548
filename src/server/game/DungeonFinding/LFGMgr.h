@@ -12,7 +12,7 @@
 #include "LFGGroupData.h"
 #include "LFGPlayerData.h"
 #include "LFGQueue.h"
-#include <ace/Singleton.h>
+#include "Platform/Singleton.h"
 
 class Group;
 class Player;
@@ -291,7 +291,7 @@ namespace lfg
 
     class LFGMgr
     {
-        friend class ACE_Singleton<LFGMgr, ACE_Null_Mutex>;
+        friend class Skyfire::Singleton<LFGMgr, Skyfire::NullMutex>;
 
     private:
         LFGMgr();
@@ -474,5 +474,5 @@ namespace lfg
 
 } // namespace lfg
 
-#define sLFGMgr ACE_Singleton<lfg::LFGMgr, ACE_Null_Mutex>::instance()
+#define sLFGMgr Skyfire::Singleton<lfg::LFGMgr, Skyfire::NullMutex>::instance()
 #endif

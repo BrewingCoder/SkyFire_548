@@ -11,7 +11,6 @@
 #include "FactoryHolder.h"
 #include "MotionMaster.h"
 #include "ObjectRegistry.h"
-#include <ace/Singleton.h>
 
 class Unit;
 

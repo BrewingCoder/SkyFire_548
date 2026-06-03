@@ -13,8 +13,7 @@
 
 #include "GridDefines.h"
 #include "Object.h"
-
-#include "ace/Singleton.h"
+#include "Platform/Singleton.h"
 
 #include "SharedMutex.h"
 #include <set>
@@ -56,7 +55,7 @@ private:
 
 class ObjectAccessor
 {
-    friend class ACE_Singleton<ObjectAccessor, ACE_Null_Mutex>;
+    friend class Skyfire::Singleton<ObjectAccessor, Skyfire::NullMutex>;
 private:
     ObjectAccessor();
     ~ObjectAccessor();
@@ -193,6 +192,6 @@ private:
     SF_SHARED_MUTEX i_corpseLock;
 };
 
-#define sObjectAccessor ACE_Singleton<ObjectAccessor, ACE_Null_Mutex>::instance()
+#define sObjectAccessor Skyfire::Singleton<ObjectAccessor, Skyfire::NullMutex>::instance()
 
 #endif
