@@ -5,9 +5,14 @@
  
 //add here most rarely modified headers to speed up debug build compilation
 
+#ifndef SKYFIRESERVER_SHAREDPCH_H
+#define SKYFIRESERVER_SHAREDPCH_H
+
 #include "Common.h"
 #include "Log.h"
 #include "DatabaseWorker.h"
 #include "SQLOperation.h"
 #include "Errors.h"
 #include "TypeList.h"
+
+#endif

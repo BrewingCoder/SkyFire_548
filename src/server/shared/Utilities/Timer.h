@@ -7,7 +7,7 @@
 #define SKYFIRE_TIMER_H
 
 #include "Common.h"
-#include "Platform/Time.h"
+#include "Platform/TimeUtils.h"
 
 inline uint32 getMSTime()
 {
