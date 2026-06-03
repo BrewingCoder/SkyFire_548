@@ -3,8 +3,6 @@
 * See LICENSE.md file for Copyright information
 */
 
-#include <ace/Guard_T.h>
-
 #include "Cryptography/BigNumber.h"
 #include <algorithm>
 #include <openssl/bn.h>

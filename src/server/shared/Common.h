@@ -75,11 +75,7 @@
 #include "Threading/LockedQueue.h"
 #include "Threading/Threading.h"
 
-#include <ace/Basic_Types.h>
-#include <ace/OS_NS_time.h>
-
 #if PLATFORM == PLATFORM_WINDOWS
-#  include <ace/config-all.h>
 // XP winver - needed to compile with standard leak check in MemoryLeaks.h
 // uncomment later if needed
 //#define _WIN32_WINNT 0x0501
@@ -115,8 +111,6 @@
 #endif
 
 inline float finiteAlways(float f) { return finite(f) ? f : 0.0f; }
-
-#define atol(a) strtoul( a, NULL, 10)
 
 #define STRINGIZE(a) #a
 
