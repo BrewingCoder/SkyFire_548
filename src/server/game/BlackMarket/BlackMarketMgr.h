@@ -6,12 +6,10 @@
 #ifndef BLACK_MARKET_H
 #define BLACK_MARKET_H
 
-
-#include <ace/Singleton.h>
-
 #include "Common.h"
 #include "DatabaseEnv.h"
 #include "DBCStructure.h"
+#include "Platform/Singleton.h"
 #include "World.h"
 
 class Item;
@@ -102,7 +100,7 @@ typedef std::map<uint32, BlackMarketAuction*> BMAuctionStore;
 
 class BlackMarketMgr
 {
-    friend class ACE_Singleton<BlackMarketMgr, ACE_Null_Mutex>;
+    friend class Skyfire::Singleton<BlackMarketMgr, Skyfire::NullMutex>;
 
 private:
     BlackMarketMgr();
@@ -140,6 +138,6 @@ public:
     bool isBlackMarketOpen() { return sWorld->GetBoolConfig(WorldBoolConfigs::CONFIG_BLACK_MARKET_OPEN); }
 };
 
-#define sBlackMarketMgr ACE_Singleton<BlackMarketMgr, ACE_Null_Mutex>::instance()
+#define sBlackMarketMgr Skyfire::Singleton<BlackMarketMgr, Skyfire::NullMutex>::instance()
 
 #endif

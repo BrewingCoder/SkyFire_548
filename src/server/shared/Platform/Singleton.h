@@ -6,14 +6,20 @@
 #ifndef SKYFIRE_PLATFORM_SINGLETON_H
 #define SKYFIRE_PLATFORM_SINGLETON_H
 
+#include "Platform/Threading.h"
+
 namespace Skyfire
 {
-    template <class T>
-    T* Singleton()
+    template <class T, class Lock = NullMutex>
+    class Singleton
     {
-        static T instance;
-        return &instance;
-    }
+    public:
+        static T* instance()
+        {
+            static T instance;
+            return &instance;
+        }
+    };
 }
 
 #endif

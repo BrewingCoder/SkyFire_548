@@ -13,7 +13,7 @@
 #include "DatabaseEnv.h"
 #include "DBCEnums.h"
 #include "DBCStores.h"
-#include <ace/Singleton.h>
+#include "Platform/Singleton.h"
 
 class Unit;
 class Player;
@@ -273,7 +273,7 @@ private:
 
 class AchievementGlobalMgr
 {
-    friend class ACE_Singleton<AchievementGlobalMgr, ACE_Null_Mutex>;
+    friend class Skyfire::Singleton<AchievementGlobalMgr, Skyfire::NullMutex>;
     AchievementGlobalMgr() { }
     ~AchievementGlobalMgr() { }
 
@@ -404,6 +404,6 @@ private:
     AchievementRewardLocales m_achievementRewardLocales;
 };
 
-#define sAchievementMgr ACE_Singleton<AchievementGlobalMgr, ACE_Null_Mutex>::instance()
+#define sAchievementMgr Skyfire::Singleton<AchievementGlobalMgr, Skyfire::NullMutex>::instance()
 
 #endif

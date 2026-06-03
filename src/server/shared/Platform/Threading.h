@@ -19,6 +19,8 @@ namespace Skyfire
         void lock() { }
         bool try_lock() { return true; }
         void unlock() { }
+        int acquire() { return 0; }
+        int release() { return 0; }
     };
 }
 

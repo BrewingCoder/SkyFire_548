@@ -7,8 +7,8 @@
 #define SF_ACCMGR_H
 
 #include "Common.h"
+#include "Platform/Singleton.h"
 #include "RBAC.h"
-#include <ace/Singleton.h>
 
 enum class AccountOpResult
 {
@@ -39,7 +39,7 @@ namespace rbac
 
 class AccountMgr
 {
-    friend class ACE_Singleton<AccountMgr, ACE_Null_Mutex>;
+    friend class Skyfire::Singleton<AccountMgr, Skyfire::NullMutex>;
 
 private:
     AccountMgr();
@@ -82,5 +82,5 @@ private:
     rbac::RBACDefaultPermissionsContainer _defaultPermissions;
 };
 
-#define sAccountMgr ACE_Singleton<AccountMgr, ACE_Null_Mutex>::instance()
+#define sAccountMgr Skyfire::Singleton<AccountMgr, Skyfire::NullMutex>::instance()
 #endif

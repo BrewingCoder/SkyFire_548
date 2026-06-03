@@ -9,8 +9,8 @@
 #include "Creature.h"
 #include "Define.h"
 #include "GameObject.h"
+#include "Platform/Singleton.h"
 #include "QuestDef.h"
-#include <ace/Singleton.h>
 
 struct PoolTemplateData
 {
@@ -91,7 +91,7 @@ typedef std::pair<PooledQuestRelation::iterator, PooledQuestRelation::iterator> 
 
 class PoolMgr
 {
-    friend class ACE_Singleton<PoolMgr, ACE_Null_Mutex>;
+    friend class Skyfire::Singleton<PoolMgr, Skyfire::NullMutex>;
 
 private:
     PoolMgr();
@@ -151,7 +151,7 @@ private:
     ActivePoolData mSpawnedData;
 };
 
-#define sPoolMgr ACE_Singleton<PoolMgr, ACE_Null_Mutex>::instance()
+#define sPoolMgr Skyfire::Singleton<PoolMgr, Skyfire::NullMutex>::instance()
 
 // Method that tell if the creature is part of a pool and return the pool id if yes
 template<>

@@ -8,13 +8,13 @@
 
 #include "Common.h"
 #include "Config.h"
+#include "Platform/Singleton.h"
 #include "WorldPacket.h"
-#include <ace/Singleton.h>
 
 class AddonHandler
 {
     /* Construction */
-    friend class ACE_Singleton<AddonHandler, ACE_Null_Mutex>;
+    friend class Skyfire::Singleton<AddonHandler, Skyfire::NullMutex>;
     AddonHandler();
 
 public:
@@ -22,5 +22,5 @@ public:
     //build addon packet
     bool BuildAddonPacket(WorldPacket* Source, WorldPacket* Target);
 };
-#define sAddOnHandler ACE_Singleton<AddonHandler, ACE_Null_Mutex>::instance()
+#define sAddOnHandler Skyfire::Singleton<AddonHandler, Skyfire::NullMutex>::instance()
 #endif
