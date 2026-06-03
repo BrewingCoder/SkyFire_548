@@ -12,12 +12,12 @@
 
 #include "Common.h"
 
-class RARunnable : public ACE_Based::Runnable
+class RARunnable
 {
 public:
     RARunnable() { }
     virtual ~RARunnable() { }
-    void run() OVERRIDE;
+    void Run();
 };
 
 #endif /* _SKYFIRE_RARUNNABLE_H_ */

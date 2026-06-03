@@ -8,16 +8,15 @@
 
 #include "Define.h"
 
-#include <Threading.h>
 #include <condition_variable>
 #include <mutex>
 
-class SFSoapRunnable : public ACE_Based::Runnable
+class SFSoapRunnable
 {
 public:
     SFSoapRunnable() : _port(0) { }
 
-    void run() OVERRIDE;
+    void Run();
 
     void SetListenArguments(const std::string& host, uint16 port)
     {

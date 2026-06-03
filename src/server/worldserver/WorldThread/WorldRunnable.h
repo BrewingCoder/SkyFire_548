@@ -11,10 +11,10 @@
 #define __WORLDRUNNABLE_H
 
 /// Heartbeat thread for the World
-class WorldRunnable : public ACE_Based::Runnable
+class WorldRunnable
 {
 public:
-    void run() OVERRIDE;
+    void Run();
 };
 
 #endif

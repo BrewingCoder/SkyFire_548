@@ -117,7 +117,7 @@ int kb_hit_return()
 #endif
 
 /// %Thread start
-void CliRunnable::run()
+void CliRunnable::Run()
 {
     ///- Display the list of available CLI functions then beep
     //SF_LOG_INFO("server.worldserver", "");

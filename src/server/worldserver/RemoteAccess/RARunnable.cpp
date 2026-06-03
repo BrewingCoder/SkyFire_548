@@ -71,7 +71,7 @@ namespace
     }
 }
 
-void RARunnable::run()
+void RARunnable::Run()
 {
     if (!sConfigMgr->GetBoolDefault("Ra.Enable", false))
         return;

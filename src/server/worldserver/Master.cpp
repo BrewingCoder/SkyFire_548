@@ -7,13 +7,10 @@
     \ingroup Skyfired
 */
 
-#include <ace/Sig_Handler.h>
-
 #include "Common.h"
 #include "Configuration/Config.h"
 #include "Database/DatabaseEnv.h"
 #include "Database/DatabaseWorkerPool.h"
-#include "SignalHandler.h"
 #include "SystemConfig.h"
 #include "World.h"
 #include "WorldRunnable.h"
@@ -31,6 +28,10 @@
 #include "Util.h"
 
 #include "BigNumber.h"
+#include <chrono>
+#include <csignal>
+#include <memory>
+#include <thread>
 
 #ifdef _WIN32
 #include "ServiceWin32.h"
@@ -43,29 +44,24 @@ extern int m_ServiceStatus;
 #define PROCESS_HIGH_PRIORITY -15 // [-20, 19], default is 0
 #endif
 
-/// Handle worldservers's termination signals
-class WorldServerSignalHandler : public Skyfire::SignalHandler
+void WorldServerSignalHandler(int sigNum)
 {
-public:
-    virtual void HandleSignal(int sigNum)
+    switch (sigNum)
     {
-        switch (sigNum)
-        {
-            case SIGINT:
-                World::StopNow(RESTART_EXIT_CODE);
-                break;
-            case SIGTERM:
+        case SIGINT:
+            World::StopNow(RESTART_EXIT_CODE);
+            break;
+        case SIGTERM:
 #ifdef _WIN32
-            case SIGBREAK:
-                if (m_ServiceStatus != 1)
+        case SIGBREAK:
+            if (m_ServiceStatus != 1)
 #endif
-                    World::StopNow(SHUTDOWN_EXIT_CODE);
-                break;
-        }
+                World::StopNow(SHUTDOWN_EXIT_CODE);
+            break;
     }
-};
+}
 
-class FreezeDetectorRunnable : public ACE_Based::Runnable
+class FreezeDetectorRunnable
 {
 private:
     uint32 _loops;
@@ -76,7 +72,7 @@ public:
 
     void SetDelayTime(uint32 t) { _delaytime = t; }
 
-    void run() OVERRIDE
+    void Run()
     {
         if (!_delaytime)
             return;
@@ -86,7 +82,7 @@ public:
         _lastChange = 0;
         while (!World::IsStopped())
         {
-            ACE_Based::Thread::Sleep(1000);
+            std::this_thread::sleep_for(std::chrono::seconds(1));
             uint32 curtime = getMSTime();
             // normal work
             uint32 worldLoopCounter = World::m_worldLoopCounter;
@@ -159,25 +155,17 @@ int Master::Run()
     ///- Initialize the World
     sWorld->SetInitialWorldSettings();
 
-    ///- Initialize the signal handlers
-    WorldServerSignalHandler signalINT, signalTERM;
-#ifdef _WIN32
-    WorldServerSignalHandler signalBREAK;
-#endif /* _WIN32 */
-
     ///- Register worldserver's signal handlers
-    ACE_Sig_Handler handle;
-    handle.register_handler(SIGINT, &signalINT);
-    handle.register_handler(SIGTERM, &signalTERM);
+    std::signal(SIGINT, WorldServerSignalHandler);
+    std::signal(SIGTERM, WorldServerSignalHandler);
 #ifdef _WIN32
-    handle.register_handler(SIGBREAK, &signalBREAK);
+    std::signal(SIGBREAK, WorldServerSignalHandler);
 #endif
 
     ///- Launch WorldRunnable thread
-    ACE_Based::Thread worldThread(new WorldRunnable);
-    worldThread.setPriority(ACE_Based::Highest);
+    std::thread worldThread([] { WorldRunnable().Run(); });
 
-    ACE_Based::Thread* cliThread = NULL;
+    std::unique_ptr<std::thread> cliThread;
 
 #ifdef _WIN32
     if (sConfigMgr->GetBoolDefault("Console.Enable", true) && (m_ServiceStatus == -1)/* need disable console in service mode*/)
@@ -186,10 +174,10 @@ int Master::Run()
 #endif
     {
         ///- Launch CliRunnable thread
-        cliThread = new ACE_Based::Thread(new CliRunnable);
+        cliThread.reset(new std::thread([] { CliRunnable().Run(); }));
     }
 
-    ACE_Based::Thread rarThread(new RARunnable);
+    std::thread rarThread([] { RARunnable().Run(); });
 
 #if defined(_WIN32) || defined(__linux__)
     ///- Handle affinity for multiple processors and process priority
@@ -258,22 +246,21 @@ int Master::Run()
 #endif
 
     //Start soap serving thread
-    ACE_Based::Thread* soapThread = NULL;
+    std::unique_ptr<std::thread> soapThread;
 
     if (sConfigMgr->GetBoolDefault("SOAP.Enabled", false))
     {
-        SFSoapRunnable* runnable = new SFSoapRunnable();
-        runnable->SetListenArguments(sConfigMgr->GetStringDefault("SOAP.IP", "127.0.0.1"), uint16(sConfigMgr->GetIntDefault("SOAP.Port", 7878)));
-        soapThread = new ACE_Based::Thread(runnable);
+        SFSoapRunnable runnable;
+        runnable.SetListenArguments(sConfigMgr->GetStringDefault("SOAP.IP", "127.0.0.1"), uint16(sConfigMgr->GetIntDefault("SOAP.Port", 7878)));
+        soapThread.reset(new std::thread([runnable]() mutable { runnable.Run(); }));
     }
 
     ///- Start up freeze catcher thread
     if (uint32 freezeDelay = sConfigMgr->GetIntDefault("MaxCoreStuckTime", 0))
     {
-        FreezeDetectorRunnable* fdr = new FreezeDetectorRunnable();
-        fdr->SetDelayTime(freezeDelay * 1000);
-        ACE_Based::Thread freezeThread(fdr);
-        freezeThread.setPriority(ACE_Based::Highest);
+        FreezeDetectorRunnable fdr;
+        fdr.SetDelayTime(freezeDelay * 1000);
+        std::thread([fdr]() mutable { fdr.Run(); }).detach();
     }
 
     ///- Launch the world listener socket
@@ -297,14 +284,16 @@ int Master::Run()
 
     // when the main thread closes the singletons get unloaded
     // since worldrunnable uses them, it will crash if unloaded after master
-    worldThread.wait();
-    rarThread.wait();
+    if (worldThread.joinable())
+        worldThread.join();
+
+    if (rarThread.joinable())
+        rarThread.join();
 
     if (soapThread)
     {
-        soapThread->wait();
-        soapThread->destroy();
-        delete soapThread;
+        if (soapThread->joinable())
+            soapThread->join();
     }
 
     // set server offline
@@ -359,16 +348,15 @@ int Master::Run()
         DWORD numb;
         WriteConsoleInput(hStdIn, b, 4, &numb);
 
-        cliThread->wait();
+        if (cliThread->joinable())
+            cliThread->join();
 
 #else
 
-        cliThread->wait();
-        cliThread->destroy();
+        if (cliThread->joinable())
+            cliThread->join();
 
 #endif
-
-        delete cliThread;
     }
 
     // for some unknown reason, unloading scripts here and not in worldrunnable

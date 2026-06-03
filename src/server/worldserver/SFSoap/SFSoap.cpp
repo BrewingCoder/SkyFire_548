@@ -10,7 +10,7 @@
 #include "soapStub.h"
 #include "World.h"
 
-void SFSoapRunnable::run()
+void SFSoapRunnable::Run()
 {
     struct soap soap;
     soap_init(&soap);
