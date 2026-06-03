@@ -8,6 +8,7 @@
 
 #include "CryptoHash.h"
 #include "Common.h"
+#include "Platform/Threading.h"
 #include "RealmSocket.h"
 #include "SRP6.h"
 
@@ -41,7 +42,7 @@ public:
     bool _HandleXferAccept();
 
     FILE* pPatch;
-    ACE_Thread_Mutex patcherLock;
+    Skyfire::Mutex patcherLock;
 
 private:
     RealmSocket& socket_;

@@ -6,8 +6,8 @@
 #ifndef APPENDERFILE_H
 #define APPENDERFILE_H
 
-#include "ace/Atomic_Op.h"
 #include "Appender.h"
+#include <atomic>
 
 class AppenderFile : public Appender
 {
@@ -26,7 +26,7 @@ private:
     bool dynamicName;
     bool backup;
     uint64 maxFileSize;
-    ACE_Atomic_Op<ACE_Thread_Mutex, uint64> fileSize;
+    std::atomic<uint64> fileSize;
 };
 
 #endif

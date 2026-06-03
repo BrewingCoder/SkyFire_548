@@ -6,6 +6,7 @@
 #include <ace/Activation_Queue.h>
 
 #include "DatabaseWorkerPool.h"
+#include "Platform/Threading.h"
 #include "Transaction.h"
 #include "Util.h"
 
@@ -96,13 +97,13 @@ protected:
     {
         /// Tries to acquire lock. If lock is acquired by another thread
         /// the calling parent will just try another connection
-        return m_Mutex.tryacquire() != -1;
+        return m_Mutex.try_lock();
     }
 
     void Unlock()
     {
         /// Called by parent databasepool. Will let other threads access this connection
-        m_Mutex.release();
+        m_Mutex.unlock();
     }
 
     MYSQL* GetHandle() { return m_Mysql; }
@@ -127,7 +128,7 @@ private:
     MYSQL* m_Mysql;                      //! MySQL Handle.
     MySQLConnectionInfo& m_connectionInfo;             //! Connection info (used for logging)
     ConnectionFlags       m_connectionFlags;            //! Connection flags (for preparing relevant statements)
-    ACE_Thread_Mutex      m_Mutex;
+    Skyfire::Mutex        m_Mutex;
 
     MySQLConnection(MySQLConnection const& right) = delete;
     MySQLConnection& operator=(MySQLConnection const& right) = delete;
