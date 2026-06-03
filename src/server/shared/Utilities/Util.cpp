@@ -8,30 +8,32 @@
 #include "sfmt.h"
 #include "utf8.h"
 #include "Util.h"
-#include <ace/TSS_T.h>
 
-typedef ACE_TSS<CRandomSFMT> CRandomSFMTTSS;
-static CRandomSFMTTSS sfmtRand;
+static CRandomSFMT& SfmtRand()
+{
+    static thread_local CRandomSFMT sfmtRand;
+    return sfmtRand;
+}
 
 float frand(float min, float max)
 {
     ASSERT(max >= min);
-    return float(sfmtRand->Random() * (max - min) + min);
+    return float(SfmtRand().Random() * (max - min) + min);
 }
 
 int32 rand32()
 {
-    return int32(sfmtRand->BRandom());
+    return int32(SfmtRand().BRandom());
 }
 
 double rand_norm(void)
 {
-    return sfmtRand->Random();
+    return SfmtRand().Random();
 }
 
 double rand_chance(void)
 {
-    return sfmtRand->Random() * 100.0;
+    return SfmtRand().Random() * 100.0;
 }
 
 Tokenizer::Tokenizer(const std::string& src, const char sep, uint32 vectorReserve)

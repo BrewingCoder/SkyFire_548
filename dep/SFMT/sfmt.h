@@ -234,8 +234,6 @@ static inline __m128i sfmt_recursion(__m128i const& a, __m128i const& b,
 // Class for SFMT generator with or without Mother-Of-All generator
 class CRandomSFMT {                              // Encapsulate random number generator
 
-   friend class ACE_TSS<CRandomSFMT>;
-
 public:
    CRandomSFMT() { }
    CRandomSFMT(int seed, int IncludeMother = 0) {// Constructor

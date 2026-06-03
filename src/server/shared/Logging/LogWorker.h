@@ -8,16 +8,16 @@
 
 #include "LogOperation.h"
 
-#include <ace/Activation_Queue.h>
-#include <ace/Task.h>
+#include <condition_variable>
+#include <mutex>
+#include <queue>
+#include <thread>
 
-class LogWorker : protected ACE_Task_Base
+class LogWorker
 {
 public:
     LogWorker();
     ~LogWorker();
-
-    typedef ACE_Message_Queue_Ex<LogOperation, ACE_MT_SYNCH> LogMessageQueueType;
 
     enum
     {
@@ -28,8 +28,13 @@ public:
     int enqueue(LogOperation* op);
 
 private:
-    virtual int svc();
-    LogMessageQueueType m_queue;
+    int svc();
+
+    std::queue<LogOperation*> m_queue;
+    std::mutex m_queueLock;
+    std::condition_variable m_condition;
+    std::thread m_thread;
+    bool m_active;
 };
 
 #endif

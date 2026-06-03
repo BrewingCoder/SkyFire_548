@@ -6,29 +6,57 @@
 #include "LogWorker.h"
 
 LogWorker::LogWorker()
-    : m_queue(HIGH_WATERMARK, LOW_WATERMARK)
+    : m_active(true), m_thread(&LogWorker::svc, this)
 {
-    ACE_Task_Base::activate(THR_NEW_LWP | THR_JOINABLE | THR_INHERIT_SCHED, 1);
 }
 
 LogWorker::~LogWorker()
 {
-    m_queue.deactivate();
-    wait();
+    {
+        std::lock_guard<std::mutex> guard(m_queueLock);
+        m_active = false;
+    }
+
+    m_condition.notify_all();
+
+    if (m_thread.joinable())
+        m_thread.join();
 }
 
 int LogWorker::enqueue(LogOperation* op)
 {
-    return m_queue.enqueue(op);
+    if (!op)
+        return -1;
+
+    {
+        std::lock_guard<std::mutex> guard(m_queueLock);
+
+        if (!m_active)
+            return -1;
+
+        m_queue.push(op);
+    }
+
+    m_condition.notify_one();
+    return 0;
 }
 
 int LogWorker::svc()
 {
     while (1)
     {
-        LogOperation* request;
-        if (m_queue.dequeue(request) == -1)
-            break;
+        LogOperation* request = NULL;
+
+        {
+            std::unique_lock<std::mutex> lock(m_queueLock);
+            m_condition.wait(lock, [this] { return !m_queue.empty() || !m_active; });
+
+            if (m_queue.empty())
+                break;
+
+            request = m_queue.front();
+            m_queue.pop();
+        }
 
         request->call();
         delete request;
