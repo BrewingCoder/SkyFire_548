@@ -11,6 +11,7 @@
 #include "WardenCheckMgr.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
+#include <mutex>
 
 WardenCheckMgr::WardenCheckMgr() { }
 
@@ -128,7 +129,7 @@ void WardenCheckMgr::LoadWardenOverrides()
 
     uint32 count = 0;
 
-    ACE_WRITE_GUARD(ACE_RW_Mutex, g, _checkStoreLock);
+    std::unique_lock<Skyfire::SharedMutex> guard(_checkStoreLock);
 
     do
     {

@@ -7,11 +7,13 @@
 #define SKYFIRE_PLATFORM_THREADING_H
 
 #include <mutex>
+#include <shared_mutex>
 
 namespace Skyfire
 {
     using Mutex = std::mutex;
     using RecursiveMutex = std::recursive_mutex;
+    using SharedMutex = std::shared_mutex;
 
     class NullMutex
     {
