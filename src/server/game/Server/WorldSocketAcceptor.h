@@ -12,42 +12,20 @@
 #define SF_WORLDSOCKETACCEPTOR_H
 
 #include "Common.h"
-
-#include <ace/Acceptor.h>
-#include <ace/SOCK_Acceptor.h>
-
 #include "WorldSocket.h"
 
-class WorldSocketAcceptor : public ACE_Acceptor<WorldSocket, ACE_SOCK_Acceptor>
+class WorldSocketAcceptor
 {
 public:
-    WorldSocketAcceptor(void) { }
-    virtual ~WorldSocketAcceptor(void)
-    {
-        if (reactor())
-            reactor()->cancel_timer(this, 1);
-    }
+    WorldSocketAcceptor();
+    ~WorldSocketAcceptor();
 
-protected:
-    virtual int handle_timeout(const ACE_Time_Value& /*current_time*/, const void* /*act = 0*/)
-    {
-        SF_LOG_DEBUG("misc", "Resuming acceptor");
-        reactor()->cancel_timer(this, 1);
-        return reactor()->register_handler(this, ACE_Event_Handler::ACCEPT_MASK);
-    }
+    bool Open(uint16 port, const char* address);
+    void Close();
+    void Update();
 
-    virtual int handle_accept_error(void)
-    {
-#if defined(ENFILE) && defined(EMFILE)
-        if (errno == ENFILE || errno == EMFILE)
-        {
-            SF_LOG_ERROR("misc", "Out of file descriptors, suspending incoming connections for 10 seconds");
-            reactor()->remove_handler(this, ACE_Event_Handler::ACCEPT_MASK | ACE_Event_Handler::DONT_CALL);
-            reactor()->schedule_timer(this, NULL, ACE_Time_Value(10));
-        }
-#endif
-        return 0;
-    }
+private:
+    WorldSocketHandle m_ListenSocket;
 };
 
 #endif /* __WORLDSOCKETACCEPTOR_H_ */

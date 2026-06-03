@@ -23,6 +23,7 @@ class WorldSocketMgr
 {
 public:
     friend class WorldSocket;
+    friend class WorldSocketAcceptor;
     friend class Skyfire::Singleton<WorldSocketMgr, Skyfire::Mutex>;
 
     /// Start network, listen at address:port .

@@ -5,6 +5,7 @@
 
 #include "DatabaseEnv.h"
 #include "DelayExecutor.h"
+#include "Log.h"
 #include "Map.h"
 #include "MapUpdater.h"
 
@@ -82,7 +83,7 @@ int MapUpdater::schedule_update(Map& map, uint32 diff)
 
     if (m_executor.execute(std::unique_ptr<DelayTask>(new MapUpdateRequest(map, *this, diff))) == -1)
     {
-        ACE_DEBUG((LM_ERROR, ACE_TEXT("(%t) \n"), ACE_TEXT("Failed to schedule Map Update")));
+        SF_LOG_ERROR("misc", "Failed to schedule Map Update");
 
         --pending_requests;
         return -1;
@@ -102,7 +103,7 @@ void MapUpdater::update_finished()
 
     if (pending_requests == 0)
     {
-        ACE_ERROR((LM_ERROR, ACE_TEXT("(%t)\n"), ACE_TEXT("MapUpdater::update_finished BUG, report to devs")));
+        SF_LOG_ERROR("misc", "MapUpdater::update_finished BUG, report to devs");
         return;
     }
 
