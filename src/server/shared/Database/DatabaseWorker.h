@@ -6,24 +6,25 @@
 #ifndef _WORKERTHREAD_H
 #define _WORKERTHREAD_H
 
+#include "DatabaseQueue.h"
 #include "Define.h"
-#include <ace/Activation_Queue.h>
-#include <ace/Task.h>
+#include <thread>
 
 class MySQLConnection;
 
-class DatabaseWorker : protected ACE_Task_Base
+class DatabaseWorker
 {
 public:
-    DatabaseWorker(ACE_Activation_Queue* new_queue, MySQLConnection* con);
+    DatabaseWorker(Skyfire::DatabaseQueue* new_queue, MySQLConnection* con);
+    ~DatabaseWorker();
 
-    ///- Inherited from ACE_Task_Base
     int svc();
-    int wait() { return ACE_Task_Base::wait(); }
+    int wait();
 
 private:
-    ACE_Activation_Queue* m_queue;
+    Skyfire::DatabaseQueue* m_queue;
     MySQLConnection* m_conn;
+    std::thread m_thread;
     DatabaseWorker(DatabaseWorker const& right) = delete;
     DatabaseWorker& operator=(DatabaseWorker const& right) = delete;
 };

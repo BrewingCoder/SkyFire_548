@@ -6,11 +6,10 @@
 #ifndef _DATABASEWORKERPOOL_H
 #define _DATABASEWORKERPOOL_H
 
-#include <ace/Thread_Mutex.h>
-
 #include "AdhocStatement.h"
 #include "Callback.h"
 #include "Common.h"
+#include "DatabaseQueue.h"
 #include "DatabaseWorker.h"
 #include "Log.h"
 #include "MySQLConnection.h"
@@ -37,7 +36,7 @@ class DatabaseWorkerPool
 {
 public:
     /* Activity state */
-    DatabaseWorkerPool() : _queue(new ACE_Activation_Queue()), _connectionInfo(NULL)
+    DatabaseWorkerPool() : _queue(new Skyfire::DatabaseQueue()), _connectionInfo(NULL)
     {
         memset(_connectionCount, 0, sizeof(_connectionCount));
         _connections.resize(IDX_SIZE);
@@ -132,10 +131,9 @@ public:
     {
         SF_LOG_INFO("sql.driver", "Closing down DatabasePool '%s'.", GetDatabaseName());
 
-        //! Shuts down delaythreads for this connection pool by underlying deactivate().
-        //! The next dequeue attempt in the worker thread tasks will result in an error,
-        //! ultimately ending the worker thread task.
-        _queue->queue()->close();
+        //! Shuts down delaythreads for this connection pool. The next dequeue attempt
+        //! in worker thread tasks will end the worker thread task.
+        _queue->close();
 
         for (uint8 i = 0; i < _connectionCount[IDX_ASYNC]; ++i)
         {
@@ -156,7 +154,6 @@ public:
         for (uint8 i = 0; i < _connectionCount[IDX_SYNCH]; ++i)
             _connections[IDX_SYNCH][i]->Close();
 
-        //! Deletes the ACE_Activation_Queue object and its underlying ACE_Message_Queue
         delete _queue;
 
         SF_LOG_INFO("sql.driver", "All connections on DatabasePool '%s' closed.", GetDatabaseName());
@@ -547,7 +544,7 @@ private:
         IDX_SIZE
     };
 
-    ACE_Activation_Queue* _queue;             //! Queue shared by async worker threads.
+    Skyfire::DatabaseQueue* _queue;           //! Queue shared by async worker threads.
     std::vector< std::vector<T*> >  _connections;
     uint32                          _connectionCount[2];       //! Counter of MySQL connections;
     MySQLConnectionInfo* _connectionInfo;

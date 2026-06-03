@@ -3,9 +3,8 @@
 * See LICENSE.md file for Copyright information
 */
 
-#include <ace/Activation_Queue.h>
-
 #include "DatabaseWorkerPool.h"
+#include "DatabaseQueue.h"
 #include "Platform/Threading.h"
 #include "Transaction.h"
 #include "Util.h"
@@ -68,7 +67,7 @@ class MySQLConnection
 
 public:
     MySQLConnection(MySQLConnectionInfo& connInfo);                               //! Constructor for synchronous connections.
-    MySQLConnection(ACE_Activation_Queue* queue, MySQLConnectionInfo& connInfo);  //! Constructor for asynchronous connections.
+    MySQLConnection(Skyfire::DatabaseQueue* queue, MySQLConnectionInfo& connInfo);  //! Constructor for asynchronous connections.
     virtual ~MySQLConnection();
 
     virtual bool Open();
@@ -123,7 +122,7 @@ private:
     bool _HandleMySQLErrno(uint32 errNo);
 
 private:
-    ACE_Activation_Queue* m_queue;                      //! Queue shared with other asynchronous connections.
+    Skyfire::DatabaseQueue* m_queue;          //! Queue shared with other asynchronous connections.
     DatabaseWorker* m_worker;                     //! Core worker task.
     MYSQL* m_Mysql;                      //! MySQL Handle.
     MySQLConnectionInfo& m_connectionInfo;             //! Connection info (used for logging)

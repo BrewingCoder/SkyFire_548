@@ -33,7 +33,7 @@ MySQLConnection::MySQLConnection(MySQLConnectionInfo& connInfo) :
     m_connectionInfo(connInfo),
     m_connectionFlags(CONNECTION_SYNCH) { }
 
-MySQLConnection::MySQLConnection(ACE_Activation_Queue* queue, MySQLConnectionInfo& connInfo) :
+MySQLConnection::MySQLConnection(Skyfire::DatabaseQueue* queue, MySQLConnectionInfo& connInfo) :
     m_reconnecting(false),
     m_prepareError(false),
     m_queue(queue),

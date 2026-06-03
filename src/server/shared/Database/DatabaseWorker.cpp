@@ -9,12 +9,16 @@
 #include "MySQLThreading.h"
 #include "SQLOperation.h"
 
-DatabaseWorker::DatabaseWorker(ACE_Activation_Queue* new_queue, MySQLConnection* con) :
+DatabaseWorker::DatabaseWorker(Skyfire::DatabaseQueue* new_queue, MySQLConnection* con) :
     m_queue(new_queue),
     m_conn(con)
 {
-    /// Assign thread to task
-    activate();
+    m_thread = std::thread(&DatabaseWorker::svc, this);
+}
+
+DatabaseWorker::~DatabaseWorker()
+{
+    wait();
 }
 
 int DatabaseWorker::svc()
@@ -25,7 +29,7 @@ int DatabaseWorker::svc()
     SQLOperation* request = NULL;
     while (1)
     {
-        request = (SQLOperation*)(m_queue->dequeue());
+        request = m_queue->dequeue();
         if (!request)
             break;
 
@@ -35,5 +39,14 @@ int DatabaseWorker::svc()
         delete request;
     }
 
+    return 0;
+}
+
+int DatabaseWorker::wait()
+{
+    if (!m_thread.joinable())
+        return 0;
+
+    m_thread.join();
     return 0;
 }
