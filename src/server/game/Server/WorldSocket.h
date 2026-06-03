@@ -13,12 +13,10 @@
 #define SF_WORLDSOCKET_H
 
 #include <ace/Basic_Types.h>
-#include <ace/Guard_T.h>
 #include <ace/Message_Block.h>
 #include <ace/SOCK_Stream.h>
 #include <ace/Svc_Handler.h>
 #include <ace/Synch_Traits.h>
-#include <ace/Thread_Mutex.h>
 #include <ace/Unbounded_Queue.h>
 
 #if !defined (ACE_LACKS_PRAGMA_ONCE)
@@ -27,7 +25,9 @@
 
 #include "Common.h"
 #include "AuthCrypt.h"
+#include "Platform/Threading.h"
 #include "SharedDefines.h"
+#include <mutex>
 
 class ACE_Message_Block;
 class WorldPacket;
@@ -81,8 +81,8 @@ public:
     friend class WorldSocketMgr;
 
     /// Mutex type used for various synchronizations.
-    typedef ACE_Thread_Mutex LockType;
-    typedef ACE_Guard<LockType> GuardType;
+    typedef Skyfire::Mutex LockType;
+    typedef std::unique_lock<LockType> GuardType;
 
     /// Check if socket is closed.
     bool IsClosed(void) const;

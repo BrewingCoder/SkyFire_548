@@ -118,7 +118,7 @@ bool WorldSocket::IsClosed(void) const
 void WorldSocket::CloseSocket(void)
 {
     {
-        ACE_GUARD(LockType, Guard, m_OutBufferLock);
+        GuardType Guard(m_OutBufferLock);
 
         if (closing_)
             return;
@@ -128,7 +128,7 @@ void WorldSocket::CloseSocket(void)
     }
 
     {
-        ACE_GUARD(LockType, Guard, m_SessionLock);
+        GuardType Guard(m_SessionLock);
 
         m_Session = NULL;
     }
@@ -141,7 +141,7 @@ const std::string& WorldSocket::GetRemoteAddress(void) const
 
 int WorldSocket::SendPacket(WorldPacket const& pct)
 {
-    ACE_GUARD_RETURN(LockType, Guard, m_OutBufferLock, -1);
+    GuardType Guard(m_OutBufferLock);
 
     if (closing_)
         return -1;
@@ -313,7 +313,7 @@ int WorldSocket::handle_input(ACE_HANDLE)
 
 int WorldSocket::handle_output(ACE_HANDLE)
 {
-    ACE_GUARD_RETURN(LockType, Guard, m_OutBufferLock, -1);
+    GuardType Guard(m_OutBufferLock);
 
     if (closing_)
         return -1;
@@ -422,7 +422,7 @@ int WorldSocket::handle_close(ACE_HANDLE h, ACE_Reactor_Mask)
 {
     // Critical section
     {
-        ACE_GUARD_RETURN(LockType, Guard, m_OutBufferLock, -1);
+        GuardType Guard(m_OutBufferLock);
 
         closing_ = true;
 
@@ -432,7 +432,7 @@ int WorldSocket::handle_close(ACE_HANDLE h, ACE_Reactor_Mask)
 
     // Critical section
     {
-        ACE_GUARD_RETURN(LockType, Guard, m_SessionLock, -1);
+        GuardType Guard(m_SessionLock);
 
         m_Session = NULL;
     }
@@ -450,7 +450,7 @@ int WorldSocket::Update(void)
         return 0;
 
     {
-        ACE_GUARD_RETURN(LockType, Guard, m_OutBufferLock, 0);
+        GuardType Guard(m_OutBufferLock);
         if (m_OutBuffer->length() == 0 && msg_queue()->is_empty())
             return 0;
     }
@@ -709,7 +709,7 @@ int WorldSocket::cancel_wakeup_output(GuardType& g)
 
     m_OutActive = false;
 
-    g.release();
+    g.unlock();
 
     if (reactor()->cancel_wakeup
     (this, ACE_Event_Handler::WRITE_MASK) == -1)
@@ -729,7 +729,7 @@ int WorldSocket::schedule_wakeup_output(GuardType& g)
 
     m_OutActive = true;
 
-    g.release();
+    g.unlock();
 
     if (reactor()->schedule_wakeup
     (this, ACE_Event_Handler::WRITE_MASK) == -1)
@@ -802,7 +802,7 @@ int WorldSocket::ProcessIncoming(WorldPacket* new_pct)
             }*/
             default:
             {
-                ACE_GUARD_RETURN(LockType, Guard, m_SessionLock, -1);
+                GuardType Guard(m_SessionLock);
                 if (!m_Session)
                 {
                     SF_LOG_ERROR("network.opcode", "ProcessIncoming: Client not authed opcode = %u", uint32(opcode));
@@ -1120,7 +1120,7 @@ int WorldSocket::HandlePing(WorldPacket& recvPacket)
 
             if (max_count && m_OverSpeedPings > max_count)
             {
-                ACE_GUARD_RETURN(LockType, Guard, m_SessionLock, -1);
+                GuardType Guard(m_SessionLock);
 
                 if (m_Session && !m_Session->HasPermission(rbac::RBAC_PERM_SKIP_CHECK_OVERSPEED_PING))
                 {
@@ -1137,7 +1137,7 @@ int WorldSocket::HandlePing(WorldPacket& recvPacket)
 
     // critical section
     {
-        ACE_GUARD_RETURN(LockType, Guard, m_SessionLock, -1);
+        GuardType Guard(m_SessionLock);
 
         if (m_Session)
         {
