@@ -5,59 +5,15 @@
 
 #include "Log.h"
 #include "RealmSocket.h"
+#include <boost/asio/buffer.hpp>
 #include <algorithm>
-
-#if PLATFORM == PLATFORM_WINDOWS
-#include <ws2tcpip.h>
-#else
-#include <cerrno>
-#include <sys/socket.h>
-#include <unistd.h>
-#endif
-
-namespace
-{
-#if PLATFORM == PLATFORM_WINDOWS
-    bool IsValidSocket(RealmSocketHandle socket)
-    {
-        return socket != INVALID_SOCKET;
-    }
-
-    int LastSocketError()
-    {
-        return WSAGetLastError();
-    }
-
-    void CloseSocketHandle(RealmSocketHandle socket)
-    {
-        if (IsValidSocket(socket))
-            closesocket(socket);
-    }
-#else
-    bool IsValidSocket(RealmSocketHandle socket)
-    {
-        return socket >= 0;
-    }
-
-    int LastSocketError()
-    {
-        return errno;
-    }
-
-    void CloseSocketHandle(RealmSocketHandle socket)
-    {
-        if (IsValidSocket(socket))
-            close(socket);
-    }
-#endif
-}
 
 RealmSocket::Session::Session(void) { }
 
 RealmSocket::Session::~Session(void) { }
 
-RealmSocket::RealmSocket(RealmSocketHandle socket, std::string remoteAddress, uint16 remotePort) :
-    _socket(socket), _inputBuffer(), _inputReadPos(0), _session(NULL),
+RealmSocket::RealmSocket(std::unique_ptr<RealmSocketHandle> socket, std::string remoteAddress, uint16 remotePort) :
+    _socket(std::move(socket)), _inputBuffer(), _inputReadPos(0), _session(NULL),
     _remoteAddress(std::move(remoteAddress)), _remotePort(remotePort), _closed(false)
 {
     _inputBuffer.reserve(4096);
@@ -129,23 +85,20 @@ bool RealmSocket::send(const char* buf, size_t len)
     std::lock_guard<std::mutex> guard(_sendLock);
 
     size_t sent = 0;
-    while (sent < len && !_closed)
+    while (sent < len && !_closed && IsOpen())
     {
-#ifdef MSG_NOSIGNAL
-        ssize_t n = ::send(_socket, buf + sent, len - sent, MSG_NOSIGNAL);
-#else
-        int n = ::send(_socket, buf + sent, int(len - sent), 0);
-#endif
+        boost::system::error_code error;
+        size_t n = _socket->write_some(boost::asio::buffer(buf + sent, len - sent), error);
 
-        if (n <= 0)
+        if (error || n == 0)
         {
             SF_LOG_DEBUG("server.authserver", "Socket send failed for %s:%u with error %d",
-                _remoteAddress.c_str(), _remotePort, LastSocketError());
+                _remoteAddress.c_str(), _remotePort, error.value());
             CloseSocket();
             return false;
         }
 
-        sent += size_t(n);
+        sent += n;
     }
 
     return sent == len;
@@ -163,9 +116,10 @@ void RealmSocket::Run()
 
     while (!_closed)
     {
-        int n = ::recv(_socket, buffer, sizeof(buffer), 0);
+        boost::system::error_code error;
+        size_t n = _socket->read_some(boost::asio::buffer(buffer), error);
 
-        if (n <= 0)
+        if (error || n == 0)
             break;
 
         _inputBuffer.insert(_inputBuffer.end(), buffer, buffer + n);
@@ -185,20 +139,22 @@ void RealmSocket::Run()
     delete this;
 }
 
+bool RealmSocket::IsOpen(void) const
+{
+    return _socket && _socket->is_open();
+}
+
 void RealmSocket::CloseSocket()
 {
     bool expected = false;
     if (!_closed.compare_exchange_strong(expected, true))
         return;
 
-    if (IsValidSocket(_socket))
+    if (IsOpen())
     {
-#if PLATFORM == PLATFORM_WINDOWS
-        ::shutdown(_socket, SD_BOTH);
-#else
-        ::shutdown(_socket, SHUT_RDWR);
-#endif
-        CloseSocketHandle(_socket);
+        boost::system::error_code ignored;
+        _socket->shutdown(boost::asio::ip::tcp::socket::shutdown_both, ignored);
+        _socket->close(ignored);
     }
 }
 

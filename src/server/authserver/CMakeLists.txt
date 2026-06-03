@@ -57,6 +57,7 @@ include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/Authentication
   ${CMAKE_CURRENT_SOURCE_DIR}/Realms
   ${CMAKE_CURRENT_SOURCE_DIR}/Server
+  ${Boost_INCLUDE_DIRS}
   ${MYSQL_INCLUDE_DIR}
   ${OPENSSL_INCLUDE_DIR}
 )
@@ -80,6 +81,12 @@ target_link_libraries(authserver
   ${OPENSSL_LIBRARIES}
   ${CMAKE_THREAD_LIBS_INIT}
 )
+
+if(TARGET Boost::headers)
+  target_link_libraries(authserver Boost::headers)
+elseif(TARGET Boost::boost)
+  target_link_libraries(authserver Boost::boost)
+endif()
 
 if( WIN32 )
   if ( MSVC )

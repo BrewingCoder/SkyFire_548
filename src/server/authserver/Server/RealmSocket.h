@@ -7,17 +7,15 @@
 #define SF_REALMSOCKET_H
 
 #include "Common.h"
+#include <boost/asio/ip/tcp.hpp>
+#include <boost/system/error_code.hpp>
 #include <atomic>
+#include <memory>
 #include <mutex>
 #include <thread>
 #include <vector>
 
-#if PLATFORM == PLATFORM_WINDOWS
-#include <winsock2.h>
-typedef SOCKET RealmSocketHandle;
-#else
-typedef int RealmSocketHandle;
-#endif
+typedef boost::asio::ip::tcp::socket RealmSocketHandle;
 
 class RealmSocket
 {
@@ -33,7 +31,7 @@ public:
         virtual void OnClose(void) = 0;
     };
 
-    RealmSocket(RealmSocketHandle socket, std::string remoteAddress, uint16 remotePort);
+    RealmSocket(std::unique_ptr<RealmSocketHandle> socket, std::string remoteAddress, uint16 remotePort);
     ~RealmSocket(void);
 
     void Start();
@@ -56,7 +54,9 @@ private:
     void CloseSocket();
     void CompactInputBuffer();
 
-    RealmSocketHandle _socket;
+    bool IsOpen(void) const;
+
+    std::unique_ptr<RealmSocketHandle> _socket;
     std::vector<char> _inputBuffer;
     size_t _inputReadPos;
     Session* _session;

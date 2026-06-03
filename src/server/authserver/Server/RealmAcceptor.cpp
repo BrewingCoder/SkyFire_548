@@ -6,98 +6,23 @@
 #include "AuthSocket.h"
 #include "Log.h"
 #include "RealmAcceptor.h"
+#include <boost/asio/error.hpp>
+#include <boost/asio/ip/address.hpp>
+#include <boost/asio/socket_base.hpp>
+#include <boost/system/error_code.hpp>
 #include <memory>
-
-#if PLATFORM == PLATFORM_WINDOWS
-#include <ws2tcpip.h>
-#else
-#include <arpa/inet.h>
-#include <cerrno>
-#include <fcntl.h>
-#include <netdb.h>
-#include <sys/select.h>
-#include <sys/socket.h>
-#include <unistd.h>
-#endif
 
 namespace
 {
-#if PLATFORM == PLATFORM_WINDOWS
-    bool IsValidSocket(RealmSocketHandle socket)
+    bool IsWouldBlock(boost::system::error_code const& error)
     {
-        return socket != INVALID_SOCKET;
-    }
-
-    int LastSocketError()
-    {
-        return WSAGetLastError();
-    }
-
-    void CloseSocketHandle(RealmSocketHandle socket)
-    {
-        if (IsValidSocket(socket))
-            closesocket(socket);
-    }
-
-    bool EnsureSocketLibrary()
-    {
-        static bool initialized = []() -> bool
-        {
-            WSADATA data;
-            return WSAStartup(MAKEWORD(2, 2), &data) == 0;
-        }();
-
-        return initialized;
-    }
-
-    bool SetNonBlocking(RealmSocketHandle socket)
-    {
-        u_long mode = 1;
-        return ioctlsocket(socket, FIONBIO, &mode) == 0;
-    }
-#else
-    bool IsValidSocket(RealmSocketHandle socket)
-    {
-        return socket >= 0;
-    }
-
-    int LastSocketError()
-    {
-        return errno;
-    }
-
-    void CloseSocketHandle(RealmSocketHandle socket)
-    {
-        if (IsValidSocket(socket))
-            close(socket);
-    }
-
-    bool EnsureSocketLibrary()
-    {
-        return true;
-    }
-
-    bool SetNonBlocking(RealmSocketHandle socket)
-    {
-        int flags = fcntl(socket, F_GETFL, 0);
-        return flags >= 0 && fcntl(socket, F_SETFL, flags | O_NONBLOCK) == 0;
-    }
-#endif
-
-    std::string GetPeerAddress(sockaddr_in const& addr)
-    {
-        char host[INET_ADDRSTRLEN] = {};
-        inet_ntop(AF_INET, &addr.sin_addr, host, sizeof(host));
-        return host;
+        return error == boost::asio::error::would_block || error == boost::asio::error::try_again;
     }
 }
 
 RealmAcceptor::RealmAcceptor() :
-#if PLATFORM == PLATFORM_WINDOWS
-    _listenSocket(INVALID_SOCKET)
-#else
-    _listenSocket(-1)
-#endif
+    _ioContext(),
+    _acceptor(_ioContext)
 {
 }
 
@@ -108,50 +33,52 @@ RealmAcceptor::~RealmAcceptor()
 
 bool RealmAcceptor::Open(uint16 port, std::string const& bindIp)
 {
-    if (!EnsureSocketLibrary())
+    boost::system::error_code error;
+    boost::asio::ip::address bindAddress = boost::asio::ip::make_address(bindIp, error);
+    if (error)
     {
-        SF_LOG_ERROR("server.authserver", "Failed to initialize socket library");
+        SF_LOG_ERROR("server.authserver", "Invalid auth bind address %s, error %d", bindIp.c_str(), error.value());
         return false;
     }
 
-    _listenSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (!IsValidSocket(_listenSocket))
+    boost::asio::ip::tcp::endpoint endpoint(bindAddress, port);
+
+    _acceptor.open(endpoint.protocol(), error);
+    if (error)
     {
-        SF_LOG_ERROR("server.authserver", "Failed to create auth listener socket, error %d", LastSocketError());
+        SF_LOG_ERROR("server.authserver", "Failed to create auth listener socket, error %d", error.value());
         return false;
     }
 
-    int reuseAddr = 1;
-    setsockopt(_listenSocket, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<char*>(&reuseAddr), sizeof(reuseAddr));
-
-    sockaddr_in address = {};
-    address.sin_family = AF_INET;
-    address.sin_port = htons(port);
-    if (inet_pton(AF_INET, bindIp.c_str(), &address.sin_addr) != 1)
+    _acceptor.set_option(boost::asio::socket_base::reuse_address(true), error);
+    if (error)
     {
-        SF_LOG_ERROR("server.authserver", "Invalid auth bind address %s", bindIp.c_str());
+        SF_LOG_ERROR("server.authserver", "Failed to set auth listener reuse address, error %d", error.value());
         Close();
         return false;
     }
 
-    if (bind(_listenSocket, reinterpret_cast<sockaddr*>(&address), sizeof(address)) != 0)
+    _acceptor.bind(endpoint, error);
+    if (error)
     {
         SF_LOG_ERROR("server.authserver", "Failed to bind auth listener to %s:%u, error %d",
-            bindIp.c_str(), port, LastSocketError());
+            bindIp.c_str(), port, error.value());
         Close();
         return false;
     }
 
-    if (listen(_listenSocket, SOMAXCONN) != 0)
+    _acceptor.listen(boost::asio::socket_base::max_listen_connections, error);
+    if (error)
     {
-        SF_LOG_ERROR("server.authserver", "Failed to listen on auth socket, error %d", LastSocketError());
+        SF_LOG_ERROR("server.authserver", "Failed to listen on auth socket, error %d", error.value());
         Close();
         return false;
     }
 
-    if (!SetNonBlocking(_listenSocket))
+    _acceptor.non_blocking(true, error);
+    if (error)
     {
-        SF_LOG_ERROR("server.authserver", "Failed to set auth listener nonblocking, error %d", LastSocketError());
+        SF_LOG_ERROR("server.authserver", "Failed to set auth listener nonblocking, error %d", error.value());
         Close();
         return false;
     }
@@ -161,39 +88,34 @@ bool RealmAcceptor::Open(uint16 port, std::string const& bindIp)
 
 void RealmAcceptor::Close()
 {
-    CloseSocketHandle(_listenSocket);
-#if PLATFORM == PLATFORM_WINDOWS
-    _listenSocket = INVALID_SOCKET;
-#else
-    _listenSocket = -1;
-#endif
+    boost::system::error_code ignored;
+    _acceptor.close(ignored);
 }
 
 void RealmAcceptor::Update()
 {
-    if (!IsValidSocket(_listenSocket))
-        return;
-
-    fd_set readSet;
-    FD_ZERO(&readSet);
-    FD_SET(_listenSocket, &readSet);
-
-    timeval timeout = {};
-    int ready = select(int(_listenSocket + 1), &readSet, NULL, NULL, &timeout);
-    if (ready <= 0)
+    if (!_acceptor.is_open())
         return;
 
     while (true)
     {
-        sockaddr_in clientAddress = {};
-        socklen_t clientAddressSize = sizeof(clientAddress);
-        RealmSocketHandle clientSocket = accept(_listenSocket, reinterpret_cast<sockaddr*>(&clientAddress), &clientAddressSize);
+        boost::system::error_code error;
+        std::unique_ptr<RealmSocketHandle> clientSocket(new RealmSocketHandle(_ioContext));
+        _acceptor.accept(*clientSocket, error);
 
-        if (!IsValidSocket(clientSocket))
+        if (error)
+        {
+            if (!IsWouldBlock(error))
+                SF_LOG_ERROR("server.authserver", "Failed to accept auth socket, error %d", error.value());
+
             break;
+        }
 
-        std::unique_ptr<RealmSocket> socket(new RealmSocket(
-            clientSocket, GetPeerAddress(clientAddress), ntohs(clientAddress.sin_port)));
+        boost::asio::ip::tcp::endpoint remoteEndpoint = clientSocket->remote_endpoint(error);
+        std::string remoteAddress = error ? std::string("<unknown>") : remoteEndpoint.address().to_string();
+        uint16 remotePort = error ? 0 : remoteEndpoint.port();
+
+        std::unique_ptr<RealmSocket> socket(new RealmSocket(std::move(clientSocket), remoteAddress, remotePort));
         socket->set_session(new AuthSocket(*socket));
         socket->Start();
         socket.release();

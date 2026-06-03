@@ -8,6 +8,8 @@
 
 #include "Common.h"
 #include "RealmSocket.h"
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/ip/tcp.hpp>
 #include <string>
 
 class RealmAcceptor
@@ -21,7 +23,8 @@ public:
     void Update();
 
 private:
-    RealmSocketHandle _listenSocket;
+    boost::asio::io_context _ioContext;
+    boost::asio::ip::tcp::acceptor _acceptor;
 };
 
 #endif
