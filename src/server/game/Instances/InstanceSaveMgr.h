@@ -10,8 +10,8 @@
 #include "DBCEnums.h"
 #include "Define.h"
 #include "ObjectDefines.h"
+#include "Platform/Singleton.h"
 #include "UnorderedMap.h"
-#include <ace/Singleton.h>
 #include <list>
 #include <map>
 #include <mutex>
@@ -131,7 +131,7 @@ typedef UNORDERED_MAP<uint32 /*PAIR32(map, difficulty)*/, time_t /*resetTime*/> 
 
 class InstanceSaveManager
 {
-    friend class ACE_Singleton<InstanceSaveManager, ACE_Thread_Mutex>;
+    friend class Skyfire::Singleton<InstanceSaveManager, Skyfire::Mutex>;
     friend class InstanceSave;
 
 private:
@@ -207,5 +207,5 @@ private:
     ResetTimeQueue m_resetTimeQueue;
 };
 
-#define sInstanceSaveMgr ACE_Singleton<InstanceSaveManager, ACE_Thread_Mutex>::instance()
+#define sInstanceSaveMgr Skyfire::Singleton<InstanceSaveManager, Skyfire::Mutex>::instance()
 #endif

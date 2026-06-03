@@ -6,7 +6,7 @@
 #define SKYFIRE_PACKETLOG_H
 
 #include "Common.h"
-#include <ace/Singleton.h>
+#include "Platform/Singleton.h"
 
 enum Direction
 {
@@ -18,7 +18,7 @@ class WorldPacket;
 
 class PacketLog
 {
-    friend class ACE_Singleton<PacketLog, ACE_Thread_Mutex>;
+    friend class Skyfire::Singleton<PacketLog, Skyfire::Mutex>;
 
 private:
     PacketLog();
@@ -33,5 +33,5 @@ private:
     FILE* _file;
 };
 
-#define sPacketLog ACE_Singleton<PacketLog, ACE_Thread_Mutex>::instance()
+#define sPacketLog Skyfire::Singleton<PacketLog, Skyfire::Mutex>::instance()
 #endif

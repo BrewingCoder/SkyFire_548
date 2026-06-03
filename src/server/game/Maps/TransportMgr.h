@@ -7,8 +7,8 @@
 #define TRANSPORTMGR_H
 
 #include "DBCStores.h"
+#include "Platform/Singleton.h"
 #include "Spline.h"
-#include <ace/Singleton.h>
 #include <G3D/Quat.h>
 
 struct KeyFrame;
@@ -85,7 +85,7 @@ typedef std::map<uint32, TransportAnimation> TransportAnimationContainer;
 
 class TransportMgr
 {
-    friend class ACE_Singleton<TransportMgr, ACE_Thread_Mutex>;
+    friend class Skyfire::Singleton<TransportMgr, Skyfire::Mutex>;
     friend void LoadDBCStores(std::string const&);
 
 public:
@@ -144,6 +144,6 @@ private:
     TransportAnimationContainer _transportAnimations;
 };
 
-#define sTransportMgr ACE_Singleton<TransportMgr, ACE_Thread_Mutex>::instance()
+#define sTransportMgr Skyfire::Singleton<TransportMgr, Skyfire::Mutex>::instance()
 
 #endif // TRANSPORTMGR_H

@@ -10,8 +10,8 @@
 #include "Map.h"
 #include "MapUpdater.h"
 #include "Object.h"
+#include "Platform/Singleton.h"
 
-#include <ace/Singleton.h>
 #include <mutex>
 
 
@@ -20,7 +20,7 @@ struct TransportCreatureProto;
 
 class MapManager
 {
-    friend class ACE_Singleton<MapManager, ACE_Thread_Mutex>;
+    friend class Skyfire::Singleton<MapManager, Skyfire::Mutex>;
 
 public:
     Map* CreateBaseMap(uint32 mapId);
@@ -142,5 +142,5 @@ private:
     uint32 _nextInstanceId;
     MapUpdater m_updater;
 };
-#define sMapMgr ACE_Singleton<MapManager, ACE_Thread_Mutex>::instance()
+#define sMapMgr Skyfire::Singleton<MapManager, Skyfire::Mutex>::instance()
 #endif

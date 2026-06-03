@@ -11,15 +11,15 @@
 #include "Dynamic/UnorderedMap.h"
 #include "Logger.h"
 #include "LogWorker.h"
+#include "Platform/Singleton.h"
 
-#include <ace/Singleton.h>
 #include <string>
 
 #define LOGGER_ROOT "root"
 
 class Log
 {
-    friend class ACE_Singleton<Log, ACE_Thread_Mutex>;
+    friend class Skyfire::Singleton<Log, Skyfire::Mutex>;
 
     typedef UNORDERED_MAP<std::string, Logger> LoggerMap;
 
@@ -102,7 +102,7 @@ inline void Log::outMessage(std::string const& filter, LogLevel level, const cha
     va_end(ap);
 }
 
-#define sLog ACE_Singleton<Log, ACE_Thread_Mutex>::instance()
+#define sLog Skyfire::Singleton<Log, Skyfire::Mutex>::instance()
 
 #if COMPILER != COMPILER_MICROSOFT
 #define SF_LOG_MESSAGE_BODY(filterType__, level__, ...)                 \

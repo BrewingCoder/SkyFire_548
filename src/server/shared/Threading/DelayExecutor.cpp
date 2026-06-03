@@ -4,14 +4,13 @@
 */
 
 #include <ace/Log_Msg.h>
-#include <ace/Singleton.h>
-#include <ace/Thread_Mutex.h>
 
 #include "DelayExecutor.h"
+#include "Platform/Singleton.h"
 
 DelayExecutor* DelayExecutor::instance()
 {
-    return ACE_Singleton<DelayExecutor, ACE_Thread_Mutex>::instance();
+    return Skyfire::Singleton<DelayExecutor, Skyfire::Mutex>::instance();
 }
 
 DelayExecutor::DelayExecutor()
