@@ -863,7 +863,7 @@ private:
     static int32 m_visibility_notify_periodInBGArenas;
 
     // CLI command holder to be thread safe
-    ACE_Based::LockedQueue<CliCommandHolder*, ACE_Thread_Mutex> cliCmdQueue;
+    ACE_Based::LockedQueue<CliCommandHolder*, Skyfire::Mutex> cliCmdQueue;
 
     // scheduled reset times
     time_t m_NextDailyQuestReset;
@@ -878,7 +878,7 @@ private:
 
     // sessions that are added async
     void AddSession_(WorldSession* s);
-    ACE_Based::LockedQueue<WorldSession*, ACE_Thread_Mutex> addSessQueue;
+    ACE_Based::LockedQueue<WorldSession*, Skyfire::Mutex> addSessQueue;
 
     // used versions
     std::string m_DBVersion;

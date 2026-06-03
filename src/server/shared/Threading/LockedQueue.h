@@ -7,10 +7,10 @@
 #define LOCKEDQUEUE_H
 
 #include "Debugging/Errors.h"
-#include <ace/Guard_T.h>
-#include <ace/Thread_Mutex.h>
+#include "Platform/Threading.h"
 #include <assert.h>
 #include <deque>
+#include <mutex>
 
 namespace ACE_Based
 {
@@ -49,8 +49,7 @@ namespace ACE_Based
         //! Gets the next result in the queue, if any.
         bool next(T& result)
         {
-            // ACE_Guard<LockType> g(this->_lock);
-            ACE_GUARD_RETURN(LockType, g, this->_lock, false);
+            std::lock_guard<LockType> g(this->_lock);
 
             if (_queue.empty())
                 return false;
@@ -66,7 +65,7 @@ namespace ACE_Based
         template<class Checker>
         bool next(T& result, Checker& check)
         {
-            ACE_Guard<LockType> g(this->_lock);
+            std::lock_guard<LockType> g(this->_lock);
 
             if (_queue.empty())
                 return false;
@@ -105,33 +104,33 @@ namespace ACE_Based
         //! Checks if the queue is cancelled.
         bool cancelled()
         {
-            ACE_Guard<LockType> g(this->_lock);
+            std::lock_guard<LockType> g(this->_lock);
             return _canceled;
         }
 
         //! Locks the queue for access.
         void lock()
         {
-            this->_lock.acquire();
+            this->_lock.lock();
         }
 
         //! Unlocks the queue.
         void unlock()
         {
-            this->_lock.release();
+            this->_lock.unlock();
         }
 
         ///! Calls pop_front of the queue
         void pop_front()
         {
-            ACE_GUARD(LockType, g, this->_lock);
+            std::lock_guard<LockType> g(this->_lock);
             _queue.pop_front();
         }
 
         ///! Checks if we're empty or not with locks held
         bool empty()
         {
-            ACE_GUARD_RETURN(LockType, g, this->_lock, false);
+            std::lock_guard<LockType> g(this->_lock);
             return _queue.empty();
         }
     };
