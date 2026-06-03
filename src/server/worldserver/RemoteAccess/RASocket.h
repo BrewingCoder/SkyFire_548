@@ -17,6 +17,9 @@
 #include <ace/Svc_Handler.h>
 #include <ace/Synch_Traits.h>
 #include <atomic>
+#include <condition_variable>
+#include <mutex>
+#include <queue>
 
 /// Remote Administration socket
 class RASocket : public ACE_Svc_Handler<ACE_SOCK_STREAM, ACE_MT_SYNCH>
@@ -31,7 +34,6 @@ public:
 
 private:
     int recv_line(std::string& outLine);
-    int recv_line(ACE_Message_Block& buffer);
     int process_command(const std::string& command);
     int authenticate();
     int subnegotiate();     ///< Used by telnet protocol RFC 854 / 855
@@ -45,6 +47,10 @@ private:
 private:
     uint8 _minLevel; ///< Minimum security level required to connect
     std::atomic<bool> _commandExecuting;
+    std::mutex _commandLock;
+    std::condition_variable _commandCondition;
+    std::queue<std::string> _commandOutput;
+    bool _commandComplete;
 };
 
 #endif
