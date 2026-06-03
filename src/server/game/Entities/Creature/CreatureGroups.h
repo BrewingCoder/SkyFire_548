@@ -7,6 +7,7 @@
 #define SF_FORMATIONS_H
 
 #include "Define.h"
+#include "Platform/Singleton.h"
 #include "UnorderedMap.h"
 #include <map>
 
@@ -27,7 +28,7 @@ typedef UNORDERED_MAP<uint32/*memberDBGUID*/, FormationInfo*>   CreatureGroupInf
 
 class FormationMgr
 {
-    friend class ACE_Singleton<FormationMgr, ACE_Null_Mutex>;
+    friend class Skyfire::Singleton<FormationMgr, Skyfire::NullMutex>;
 public:
     FormationMgr() { }
     ~FormationMgr();
@@ -65,6 +66,6 @@ public:
     void MemberAttackStart(Creature* member, Unit* target);
 };
 
-#define sFormationMgr ACE_Singleton<FormationMgr, ACE_Null_Mutex>::instance()
+#define sFormationMgr Skyfire::Singleton<FormationMgr, Skyfire::NullMutex>::instance()
 
 #endif

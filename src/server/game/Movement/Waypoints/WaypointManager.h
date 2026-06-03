@@ -6,8 +6,7 @@
 #ifndef SKYFIRE_WAYPOINTMANAGER_H
 #define SKYFIRE_WAYPOINTMANAGER_H
 
-#include <ace/Null_Mutex.h>
-#include <ace/Singleton.h>
+#include "Platform/Singleton.h"
 #include <vector>
 
 struct WaypointData
@@ -25,7 +24,7 @@ typedef UNORDERED_MAP<uint32, WaypointPath> WaypointPathContainer;
 
 class WaypointMgr
 {
-    friend class ACE_Singleton<WaypointMgr, ACE_Null_Mutex>;
+    friend class Skyfire::Singleton<WaypointMgr, Skyfire::NullMutex>;
 
 public:
     // Attempts to reload a single path from database
@@ -45,13 +44,13 @@ public:
     }
 
 private:
-    // Only allow instantiation from ACE_Singleton
+    // Only allow instantiation from the singleton wrapper.
     WaypointMgr();
     ~WaypointMgr();
 
     WaypointPathContainer _waypointStore;
 };
 
-#define sWaypointMgr ACE_Singleton<WaypointMgr, ACE_Null_Mutex>::instance()
+#define sWaypointMgr Skyfire::Singleton<WaypointMgr, Skyfire::NullMutex>::instance()
 
 #endif

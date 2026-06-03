@@ -7,6 +7,7 @@
 #define SF_WARDENCHECKMGR_H
 
 #include "Cryptography/BigNumber.h"
+#include "Platform/Singleton.h"
 #include <map>
 
 enum WardenActions
@@ -35,7 +36,7 @@ struct WardenCheckResult
 
 class WardenCheckMgr
 {
-    friend class ACE_Singleton<WardenCheckMgr, ACE_Null_Mutex>;
+    friend class Skyfire::Singleton<WardenCheckMgr, Skyfire::NullMutex>;
     WardenCheckMgr();
     ~WardenCheckMgr();
 
@@ -60,6 +61,6 @@ private:
     CheckResultContainer CheckResultStore;
 };
 
-#define sWardenCheckMgr ACE_Singleton<WardenCheckMgr, ACE_Null_Mutex>::instance()
+#define sWardenCheckMgr Skyfire::Singleton<WardenCheckMgr, Skyfire::NullMutex>::instance()
 
 #endif

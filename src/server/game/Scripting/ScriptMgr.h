@@ -7,8 +7,8 @@
 #define SC_SCRIPTMGR_H
 
 #include "Common.h"
+#include "Platform/Singleton.h"
 #include <atomic>
-#include <ace/Singleton.h>
 
 #include "DBCStores.h"
 #include "SharedDefines.h"
@@ -761,12 +761,12 @@ public:
 };
 
 // Placed here due to ScriptRegistry::AddScript dependency.
-#define sScriptMgr ACE_Singleton<ScriptMgr, ACE_Null_Mutex>::instance()
+#define sScriptMgr Skyfire::Singleton<ScriptMgr, Skyfire::NullMutex>::instance()
 
 // Manages registration, loading, and execution of scripts.
 class ScriptMgr
 {
-    friend class ACE_Singleton<ScriptMgr, ACE_Null_Mutex>;
+    friend class Skyfire::Singleton<ScriptMgr, Skyfire::NullMutex>;
     friend class ScriptObject;
 
 private:

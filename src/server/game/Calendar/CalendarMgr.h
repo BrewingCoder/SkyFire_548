@@ -7,8 +7,8 @@
 #define SKYFIRE_CALENDARMGR_H
 
 #include "Common.h"
+#include "Platform/Singleton.h"
 #include "WorldPacket.h"
-#include <ace/Singleton.h>
 
 enum CalendarMailAnswers
 {
@@ -258,7 +258,7 @@ typedef std::map<uint64 /* eventId */, CalendarInviteStore > CalendarEventInvite
 
 class CalendarMgr
 {
-    friend class ACE_Singleton<CalendarMgr, ACE_Null_Mutex>;
+    friend class Skyfire::Singleton<CalendarMgr, Skyfire::NullMutex>;
 
 private:
     CalendarMgr() : _maxEventId(0), _maxInviteId(0) { }
@@ -318,6 +318,6 @@ public:
     void SendPacketToAllEventRelatives(WorldPacket packet, CalendarEvent const& calendarEvent);
 };
 
-#define sCalendarMgr ACE_Singleton<CalendarMgr, ACE_Null_Mutex>::instance()
+#define sCalendarMgr Skyfire::Singleton<CalendarMgr, Skyfire::NullMutex>::instance()
 
 #endif

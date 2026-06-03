@@ -10,6 +10,7 @@
 #include "Creature.h"
 #include "CreatureAI.h"
 #include "DB2Stores.h"
+#include "Platform/Singleton.h"
 #include "Spell.h"
 #include "Unit.h"
 
@@ -1339,7 +1340,7 @@ typedef UNORDERED_MAP<uint32, ObjectList*> ObjectListMap;
 
 class SmartWaypointMgr
 {
-    friend class ACE_Singleton<SmartWaypointMgr, ACE_Null_Mutex>;
+    friend class Skyfire::Singleton<SmartWaypointMgr, Skyfire::NullMutex>;
     SmartWaypointMgr() { }
 public:
     ~SmartWaypointMgr();
@@ -1369,7 +1370,7 @@ typedef std::pair<CacheSpellContainer::const_iterator, CacheSpellContainer::cons
 
 class SmartAIMgr
 {
-    friend class ACE_Singleton<SmartAIMgr, ACE_Null_Mutex>;
+    friend class Skyfire::Singleton<SmartAIMgr, Skyfire::NullMutex>;
     SmartAIMgr() { }
 public:
     ~SmartAIMgr() { }
@@ -1539,6 +1540,6 @@ private:
     CacheSpellContainer KillCreditSpellStore;
 };
 
-#define sSmartScriptMgr ACE_Singleton<SmartAIMgr, ACE_Null_Mutex>::instance()
-#define sSmartWaypointMgr ACE_Singleton<SmartWaypointMgr, ACE_Null_Mutex>::instance()
+#define sSmartScriptMgr Skyfire::Singleton<SmartAIMgr, Skyfire::NullMutex>::instance()
+#define sSmartWaypointMgr Skyfire::Singleton<SmartWaypointMgr, Skyfire::NullMutex>::instance()
 #endif

@@ -10,6 +10,7 @@
 #include "GridNotifiers.h"
 #include "ObjectAccessor.h"
 #include "Opcodes.h"
+#include "Platform/Singleton.h"
 #include "SharedDefines.h"
 
 struct CreatureTextEntry
@@ -69,7 +70,7 @@ typedef UNORDERED_MAP<uint64, CreatureTextRepeatGroup> CreatureTextRepeatMap;//g
 
 class CreatureTextMgr
 {
-    friend class ACE_Singleton<CreatureTextMgr, ACE_Null_Mutex>;
+    friend class Skyfire::Singleton<CreatureTextMgr, Skyfire::NullMutex>;
     CreatureTextMgr() { };
 
 public:
@@ -100,7 +101,7 @@ private:
     LocaleCreatureTextMap mLocaleTextMap;
 };
 
-#define sCreatureTextMgr ACE_Singleton<CreatureTextMgr, ACE_Null_Mutex>::instance()
+#define sCreatureTextMgr Skyfire::Singleton<CreatureTextMgr, Skyfire::NullMutex>::instance()
 
 template<class Builder>
 class CreatureTextLocalizer

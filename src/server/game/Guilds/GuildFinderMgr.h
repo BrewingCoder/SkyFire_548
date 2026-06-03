@@ -8,8 +8,8 @@
 
 #include "Common.h"
 #include "GuildMgr.h"
+#include "Platform/Singleton.h"
 #include "World.h"
-#include <ace/Singleton.h>
 
 enum GuildFinderOptionsInterest
 {
@@ -176,7 +176,7 @@ typedef std::map<uint32 /* guildGuid */, std::vector<MembershipRequest> > Member
 
 class GuildFinderMgr
 {
-    friend class ACE_Singleton<GuildFinderMgr, ACE_Null_Mutex>;
+    friend class Skyfire::Singleton<GuildFinderMgr, Skyfire::NullMutex>;
 
 private:
     GuildFinderMgr();
@@ -257,6 +257,6 @@ public:
     void SendMembershipRequestListUpdate(Player& player);
 };
 
-#define sGuildFinderMgr ACE_Singleton<GuildFinderMgr, ACE_Null_Mutex>::instance()
+#define sGuildFinderMgr Skyfire::Singleton<GuildFinderMgr, Skyfire::NullMutex>::instance()
 
 #endif // __SKYFIRE_GUILDFINDER_H
