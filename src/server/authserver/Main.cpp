@@ -11,13 +11,12 @@
 * authentication server
 */
 #pragma comment (lib, "Crypt32")
-#include <ace/ACE.h>
-#include <ace/Dev_Poll_Reactor.h>
-#include <ace/Sig_Handler.h>
-#include <ace/TP_Reactor.h>
 #include <openssl/crypto.h>
 #include <openssl/opensslv.h>
 #include <openssl/provider.h>
+#include <chrono>
+#include <csignal>
+#include <thread>
 
 #include "Common.h"
 #include "Configuration/Config.h"
@@ -25,7 +24,6 @@
 #include "Log.h"
 #include "RealmAcceptor.h"
 #include "RealmList.h"
-#include "SignalHandler.h"
 #include "SystemConfig.h"
 #include "Util.h"
 
@@ -67,21 +65,16 @@ LoginDatabaseWorkerPool LoginDatabase;                      // Accessor to the a
 # define _SKYFIRE_AUTH_DATABASE  ""
 #endif
 
-/// Handle authserver's termination signals
-class AuthServerSignalHandler : public Skyfire::SignalHandler
+void AuthServerSignalHandler(int sigNum)
 {
-public:
-    virtual void HandleSignal(int sigNum)
+    switch (sigNum)
     {
-        switch (sigNum)
-        {
-            case SIGINT:
-            case SIGTERM:
-                stopEvent = true;
-                break;
-        }
+        case SIGINT:
+        case SIGTERM:
+            stopEvent = true;
+            break;
     }
-};
+}
 
 /// Print out the usage string for this program on the console.
 void usage(const char* prog)
@@ -260,14 +253,6 @@ extern int main(int argc, char** argv)
 
     OSSL_PROVIDER_unload(legacy_provider);
 
-#if defined (ACE_HAS_EVENT_POLL) || defined (ACE_HAS_DEV_POLL)
-    ACE_Reactor::instance(new ACE_Reactor(new ACE_Dev_Poll_Reactor(ACE::max_handles(), 1), 1), true);
-#else
-    ACE_Reactor::instance(new ACE_Reactor(new ACE_TP_Reactor(), true), true);
-#endif
-
-    SF_LOG_DEBUG("server.authserver", "Max allowed open files is %d", ACE::max_handles());
-
     // authserver PID file creation
     std::string pidFile = sConfigMgr->GetStringDefault("PidFile", "");
     if (!pidFile.empty())
@@ -305,21 +290,15 @@ extern int main(int argc, char** argv)
 
     std::string bind_ip = sConfigMgr->GetStringDefault("BindIP", "0.0.0.0");
 
-    ACE_INET_Addr bind_addr(uint16(rmport), bind_ip.c_str());
-
-    if (acceptor.open(bind_addr, ACE_Reactor::instance(), ACE_NONBLOCK) == -1)
+    if (!acceptor.Open(uint16(rmport), bind_ip))
     {
         SF_LOG_ERROR("server.authserver", "Auth server can not bind to %s:%d", bind_ip.c_str(), rmport);
         return 1;
     }
 
-    // Initialize the signal handlers
-    AuthServerSignalHandler SignalINT, SignalTERM;
-
     // Register authservers's signal handlers
-    ACE_Sig_Handler Handler;
-    Handler.register_handler(SIGINT, &SignalINT);
-    Handler.register_handler(SIGTERM, &SignalTERM);
+    std::signal(SIGINT, AuthServerSignalHandler);
+    std::signal(SIGTERM, AuthServerSignalHandler);
 
 #if defined(_WIN32) || defined(__linux__)
 
@@ -398,11 +377,8 @@ extern int main(int argc, char** argv)
     // Wait for termination signal
     while (!stopEvent)
     {
-        // dont move this outside the loop, the reactor will modify it
-        ACE_Time_Value interval(0, 100000);
-
-        if (ACE_Reactor::instance()->run_reactor_event_loop(interval) == -1)
-            break;
+        acceptor.Update();
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
 
         if ((++loopCounter) == numLoops)
         {

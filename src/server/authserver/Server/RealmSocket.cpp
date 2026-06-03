@@ -3,75 +3,83 @@
 * See LICENSE.md file for Copyright information
 */
 
-#include <ace/INET_Addr.h>
-#include <ace/OS_NS_string.h>
-#include <ace/SString.h>
-
 #include "Log.h"
 #include "RealmSocket.h"
+#include <algorithm>
+
+#if PLATFORM == PLATFORM_WINDOWS
+#include <ws2tcpip.h>
+#else
+#include <cerrno>
+#include <sys/socket.h>
+#include <unistd.h>
+#endif
+
+namespace
+{
+#if PLATFORM == PLATFORM_WINDOWS
+    bool IsValidSocket(RealmSocketHandle socket)
+    {
+        return socket != INVALID_SOCKET;
+    }
+
+    int LastSocketError()
+    {
+        return WSAGetLastError();
+    }
+
+    void CloseSocketHandle(RealmSocketHandle socket)
+    {
+        if (IsValidSocket(socket))
+            closesocket(socket);
+    }
+#else
+    bool IsValidSocket(RealmSocketHandle socket)
+    {
+        return socket >= 0;
+    }
+
+    int LastSocketError()
+    {
+        return errno;
+    }
+
+    void CloseSocketHandle(RealmSocketHandle socket)
+    {
+        if (IsValidSocket(socket))
+            close(socket);
+    }
+#endif
+}
 
 RealmSocket::Session::Session(void) { }
 
 RealmSocket::Session::~Session(void) { }
 
-RealmSocket::RealmSocket(void) :
-    input_buffer_(4096), session_(NULL),
-    _remoteAddress(), _remotePort(0)
+RealmSocket::RealmSocket(RealmSocketHandle socket, std::string remoteAddress, uint16 remotePort) :
+    _socket(socket), _inputBuffer(), _inputReadPos(0), _session(NULL),
+    _remoteAddress(std::move(remoteAddress)), _remotePort(remotePort), _closed(false)
 {
-    reference_counting_policy().value(ACE_Event_Handler::Reference_Counting_Policy::ENABLED);
-
-    msg_queue()->high_water_mark(8 * 1024 * 1024);
-    msg_queue()->low_water_mark(8 * 1024 * 1024);
+    _inputBuffer.reserve(4096);
 }
 
 RealmSocket::~RealmSocket(void)
 {
-    if (msg_queue())
-        msg_queue()->close();
-
-    // delete RealmSocketObject must never be called from our code.
-    closing_ = true;
-
-    delete session_;
-
-    peer().close();
+    CloseSocket();
+    delete _session;
 }
 
-int RealmSocket::open(void* arg)
+void RealmSocket::Start()
 {
-    ACE_INET_Addr addr;
+    if (_session)
+        _session->OnAccept();
 
-    if (peer().get_remote_addr(addr) == -1)
-    {
-        SF_LOG_ERROR("server.authserver", "Error %s while opening realm socket!", ACE_OS::strerror(errno));
-        return -1;
-    }
-
-    _remoteAddress = addr.get_host_addr();
-    _remotePort = addr.get_port_number();
-
-    // Register with ACE Reactor
-    if (Base::open(arg) == -1)
-        return -1;
-
-    if (session_)
-        session_->OnAccept();
-
-    // reactor takes care of the socket from now on
-    remove_reference();
-
-    return 0;
+    std::thread(&RealmSocket::Run, this).detach();
 }
 
-int RealmSocket::close(u_long)
+void RealmSocket::shutdown()
 {
-    shutdown();
-
-    closing_ = true;
-
-    remove_reference();
-
-    return 0;
+    CloseSocket();
 }
 
 const std::string& RealmSocket::getRemoteAddress(void) const
@@ -86,16 +94,15 @@ uint16 RealmSocket::getRemotePort(void) const
 
 size_t RealmSocket::recv_len(void) const
 {
-    return input_buffer_.length();
+    return _inputBuffer.size() - _inputReadPos;
 }
 
 bool RealmSocket::recv_soft(char* buf, size_t len)
 {
-    if (input_buffer_.length() < len)
+    if (recv_len() < len)
         return false;
 
-    ACE_OS::memcpy(buf, input_buffer_.rd_ptr(), len);
-
+    memcpy(buf, _inputBuffer.data() + _inputReadPos, len);
     return true;
 }
 
@@ -111,38 +118,7 @@ bool RealmSocket::recv(char* buf, size_t len)
 
 void RealmSocket::recv_skip(size_t len)
 {
-    input_buffer_.rd_ptr(len);
-}
-
-ssize_t RealmSocket::noblk_send(ACE_Message_Block& message_block)
-{
-    const size_t len = message_block.length();
-
-    if (len == 0)
-        return -1;
-
-    // Try to send the message directly.
-#ifdef MSG_NOSIGNAL
-    ssize_t n = peer().send(message_block.rd_ptr(), len, MSG_NOSIGNAL);
-#else
-    ssize_t n = peer().send(message_block.rd_ptr(), len);
-#endif // MSG_NOSIGNAL
-
-    if (n < 0)
-    {
-        if (errno == EWOULDBLOCK) // Blocking signal
-            return 0;
-        else // Error happened
-            return -1;
-    }
-    else if (n == 0)
-    {
-        // Can this happen ?
-        return -1;
-    }
-
-    // return bytes transmitted
-    return n;
+    _inputReadPos = std::min(_inputReadPos + len, _inputBuffer.size());
 }
 
 bool RealmSocket::send(const char* buf, size_t len)
@@ -150,129 +126,91 @@ bool RealmSocket::send(const char* buf, size_t len)
     if (buf == NULL || len == 0)
         return true;
 
-    ACE_Data_Block db(len, ACE_Message_Block::MB_DATA, (const char*)buf, 0, 0, ACE_Message_Block::DONT_DELETE, 0);
-    ACE_Message_Block message_block(&db, ACE_Message_Block::DONT_DELETE, 0);
+    std::lock_guard<std::mutex> guard(_sendLock);
 
-    message_block.wr_ptr(len);
-
-    if (msg_queue()->is_empty())
+    size_t sent = 0;
+    while (sent < len && !_closed)
     {
-        // Try to send it directly.
-        ssize_t n = noblk_send(message_block);
+#ifdef MSG_NOSIGNAL
+        ssize_t n = ::send(_socket, buf + sent, len - sent, MSG_NOSIGNAL);
+#else
+        int n = ::send(_socket, buf + sent, int(len - sent), 0);
+#endif
 
-        if (n < 0)
-            return false;
-
-        size_t un = size_t(n);
-        if (un == len)
-            return true;
-
-        // fall down
-        message_block.rd_ptr(un);
-    }
-
-    ACE_Message_Block* mb = message_block.clone();
-
-    if (msg_queue()->enqueue_tail(mb, (ACE_Time_Value*)(&ACE_Time_Value::zero)) == -1)
-    {
-        mb->release();
-        return false;
-    }
-
-    if (reactor()->schedule_wakeup(this, ACE_Event_Handler::WRITE_MASK) == -1)
-        return false;
-
-    return true;
-}
-
-int RealmSocket::handle_output(ACE_HANDLE)
-{
-    if (closing_)
-        return -1;
-
-    ACE_Message_Block* mb = 0;
-
-    if (msg_queue()->is_empty())
-    {
-        reactor()->cancel_wakeup(this, ACE_Event_Handler::WRITE_MASK);
-        return 0;
-    }
-
-    if (msg_queue()->dequeue_head(mb, (ACE_Time_Value*)(&ACE_Time_Value::zero)) == -1)
-        return -1;
-
-    ssize_t n = noblk_send(*mb);
-
-    if (n < 0)
-    {
-        mb->release();
-        return -1;
-    }
-    else if (size_t(n) == mb->length())
-    {
-        mb->release();
-        return 1;
-    }
-    else
-    {
-        mb->rd_ptr(n);
-
-        if (msg_queue()->enqueue_head(mb, (ACE_Time_Value*)&ACE_Time_Value::zero) == -1)
+        if (n <= 0)
         {
-            mb->release();
-            return -1;
+            SF_LOG_DEBUG("server.authserver", "Socket send failed for %s:%u with error %d",
+                _remoteAddress.c_str(), _remotePort, LastSocketError());
+            CloseSocket();
+            return false;
         }
 
-        return 0;
+        sent += size_t(n);
     }
 
-    ACE_NOTREACHED(return -1);
-}
-
-int RealmSocket::handle_close(ACE_HANDLE h, ACE_Reactor_Mask)
-{
-    // As opposed to WorldSocket::handle_close, we don't need locks here.
-    closing_ = true;
-
-    if (h == ACE_INVALID_HANDLE)
-        peer().close_writer();
-
-    if (session_)
-        session_->OnClose();
-
-    reactor()->remove_handler(this, ACE_Event_Handler::DONT_CALL | ACE_Event_Handler::ALL_EVENTS_MASK);
-    return 0;
-}
-
-int RealmSocket::handle_input(ACE_HANDLE)
-{
-    if (closing_)
-        return -1;
-
-    const ssize_t space = input_buffer_.space();
-
-    ssize_t n = peer().recv(input_buffer_.wr_ptr(), space);
-
-    if (n < 0)
-        return errno == EWOULDBLOCK ? 0 : -1;
-    else if (n == 0) // EOF
-        return -1;
-
-    input_buffer_.wr_ptr((size_t)n);
-
-    if (session_ != NULL)
-    {
-        session_->OnRead();
-        input_buffer_.crunch();
-    }
-
-    // return 1 in case there is more data to read from OS
-    return n == space ? 1 : 0;
+    return sent == len;
 }
 
 void RealmSocket::set_session(Session* session)
 {
-    delete session_;
+    delete _session;
+    _session = session;
+}
 
-    session_ = session;
+void RealmSocket::Run()
+{
+    char buffer[4096];
+
+    while (!_closed)
+    {
+        int n = ::recv(_socket, buffer, sizeof(buffer), 0);
+
+        if (n <= 0)
+            break;
+
+        _inputBuffer.insert(_inputBuffer.end(), buffer, buffer + n);
+
+        if (_session)
+        {
+            _session->OnRead();
+            CompactInputBuffer();
+        }
+    }
+
+    CloseSocket();
+
+    if (_session)
+        _session->OnClose();
+
+    delete this;
+}
+
+void RealmSocket::CloseSocket()
+{
+    bool expected = false;
+    if (!_closed.compare_exchange_strong(expected, true))
+        return;
+
+    if (IsValidSocket(_socket))
+    {
+#if PLATFORM == PLATFORM_WINDOWS
+        ::shutdown(_socket, SD_BOTH);
+#else
+        ::shutdown(_socket, SHUT_RDWR);
+#endif
+        CloseSocketHandle(_socket);
+    }
+}
+
+void RealmSocket::CompactInputBuffer()
+{
+    if (_inputReadPos == 0)
+        return;
+
+    if (_inputReadPos >= _inputBuffer.size())
+        _inputBuffer.clear();
+    else
+        _inputBuffer.erase(_inputBuffer.begin(), _inputBuffer.begin() + ptrdiff_t(_inputReadPos));
+
+    _inputReadPos = 0;
 }

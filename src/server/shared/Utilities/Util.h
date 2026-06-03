@@ -8,8 +8,8 @@
 
 #include "Define.h"
 #include "Errors.h"
+#include "NetworkAddress.h"
 
-#include <ace/INET_Addr.h>
 #include <algorithm>
 #include <list>
 #include <string>
@@ -327,10 +327,10 @@ void vutf8printf(FILE* out, const char* str, va_list* ap);
 bool IsIPAddress(char const* ipaddress);
 
 /// Checks if address belongs to the a network with specified submask
-bool IsIPAddrInNetwork(ACE_INET_Addr const& net, ACE_INET_Addr const& addr, ACE_INET_Addr const& subnetMask);
+bool IsIPAddrInNetwork(Skyfire::Net::Address const& net, Skyfire::Net::Address const& addr, Skyfire::Net::Address const& subnetMask);
 
-/// Transforms ACE_INET_Addr address into string format "dotted_ip:port"
-std::string GetAddressString(ACE_INET_Addr const& addr);
+/// Transforms network address into string format "dotted_ip:port"
+std::string GetAddressString(Skyfire::Net::Address const& addr);
 
 uint32 CreatePIDFile(const std::string& filename);
 

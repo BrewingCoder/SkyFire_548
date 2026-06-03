@@ -216,17 +216,17 @@ bool IsIPAddress(char const* ipaddress)
     return inet_addr(ipaddress) != INADDR_NONE;
 }
 
-std::string GetAddressString(ACE_INET_Addr const& addr)
+std::string GetAddressString(Skyfire::Net::Address const& addr)
 {
-    char buf[ACE_MAX_FULLY_QUALIFIED_NAME_LEN + 16];
-    addr.addr_to_string(buf, ACE_MAX_FULLY_QUALIFIED_NAME_LEN + 16);
-    return buf;
+    std::ostringstream ss;
+    ss << addr.GetHost() << ':' << addr.GetPort();
+    return ss.str();
 }
 
-bool IsIPAddrInNetwork(ACE_INET_Addr const& net, ACE_INET_Addr const& addr, ACE_INET_Addr const& subnetMask)
+bool IsIPAddrInNetwork(Skyfire::Net::Address const& net, Skyfire::Net::Address const& addr, Skyfire::Net::Address const& subnetMask)
 {
-    uint32 mask = subnetMask.get_ip_address();
-    if ((net.get_ip_address() & mask) == (addr.get_ip_address() & mask))
+    uint32 mask = subnetMask.ToIPv4NetworkOrder();
+    if ((net.ToIPv4NetworkOrder() & mask) == (addr.ToIPv4NetworkOrder() & mask))
         return true;
     return false;
 }

@@ -9,6 +9,7 @@
 #include <condition_variable>
 #include <mutex>
 
+#include "Define.h"
 #include "DelayExecutor.h"
 
 class Map;
@@ -20,7 +21,7 @@ public:
     virtual ~MapUpdater();
     friend class MapUpdateRequest;
 
-    int schedule_update(Map& map, ACE_UINT32 diff);
+    int schedule_update(Map& map, uint32 diff);
     int wait();
     int activate(size_t num_threads);
     int deactivate();

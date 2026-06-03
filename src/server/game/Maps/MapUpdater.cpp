@@ -29,10 +29,10 @@ class MapUpdateRequest : public DelayTask
 private:
     Map& m_map;
     MapUpdater& m_updater;
-    ACE_UINT32 m_diff;
+    uint32 m_diff;
 
 public:
-    MapUpdateRequest(Map& m, MapUpdater& u, ACE_UINT32 d)
+    MapUpdateRequest(Map& m, MapUpdater& u, uint32 d)
         : m_map(m), m_updater(u), m_diff(d) { }
 
     virtual int call()
@@ -74,7 +74,7 @@ int MapUpdater::wait()
     return 0;
 }
 
-int MapUpdater::schedule_update(Map& map, ACE_UINT32 diff)
+int MapUpdater::schedule_update(Map& map, uint32 diff)
 {
     std::lock_guard<std::mutex> guard(Lock);
 

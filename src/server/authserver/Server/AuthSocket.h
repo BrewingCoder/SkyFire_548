@@ -8,11 +8,11 @@
 
 #include "CryptoHash.h"
 #include "Common.h"
+#include "NetworkAddress.h"
 #include "Platform/Threading.h"
 #include "RealmSocket.h"
 #include "SRP6.h"
 
-class ACE_INET_Addr;
 struct Realm;
 
 // Handle login commands
@@ -28,7 +28,7 @@ public:
     virtual void OnAccept(void);
     virtual void OnClose(void);
 
-    static ACE_INET_Addr const& GetAddressForClient(Realm const& realm, ACE_INET_Addr const& clientAddr);
+    static Skyfire::Net::Address const& GetAddressForClient(Realm const& realm, Skyfire::Net::Address const& clientAddr);
 
     bool _HandleLogonChallenge();
     bool _HandleLogonProof();

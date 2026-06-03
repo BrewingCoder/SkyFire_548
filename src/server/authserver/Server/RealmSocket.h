@@ -7,17 +7,20 @@
 #define SF_REALMSOCKET_H
 
 #include "Common.h"
-#include <ace/Basic_Types.h>
-#include <ace/Message_Block.h>
-#include <ace/SOCK_Stream.h>
-#include <ace/Svc_Handler.h>
-#include <ace/Synch_Traits.h>
+#include <atomic>
+#include <mutex>
+#include <thread>
+#include <vector>
 
-class RealmSocket : public ACE_Svc_Handler<ACE_SOCK_STREAM, ACE_NULL_SYNCH>
+#if PLATFORM == PLATFORM_WINDOWS
+#include <winsock2.h>
+typedef SOCKET RealmSocketHandle;
+#else
+typedef int RealmSocketHandle;
+#endif
+
+class RealmSocket
 {
-private:
-    typedef ACE_Svc_Handler<ACE_SOCK_STREAM, ACE_NULL_SYNCH> Base;
-
 public:
     class Session
     {
@@ -30,8 +33,11 @@ public:
         virtual void OnClose(void) = 0;
     };
 
-    RealmSocket(void);
-    virtual ~RealmSocket(void);
+    RealmSocket(RealmSocketHandle socket, std::string remoteAddress, uint16 remotePort);
+    ~RealmSocket(void);
+
+    void Start();
+    void shutdown();
 
     size_t recv_len(void) const;
     bool recv_soft(char* buf, size_t len);
@@ -41,27 +47,23 @@ public:
     bool send(const char* buf, size_t len);
 
     const std::string& getRemoteAddress(void) const;
-
     uint16 getRemotePort(void) const;
-
-    virtual int open(void*);
-
-    virtual int close(u_long);
-
-    virtual int handle_input(ACE_HANDLE = ACE_INVALID_HANDLE);
-    virtual int handle_output(ACE_HANDLE = ACE_INVALID_HANDLE);
-
-    virtual int handle_close(ACE_HANDLE = ACE_INVALID_HANDLE, ACE_Reactor_Mask = ACE_Event_Handler::ALL_EVENTS_MASK);
 
     void set_session(Session* session);
 
 private:
-    ssize_t noblk_send(ACE_Message_Block& message_block);
+    void Run();
+    void CloseSocket();
+    void CompactInputBuffer();
 
-    ACE_Message_Block input_buffer_;
-    Session* session_;
+    RealmSocketHandle _socket;
+    std::vector<char> _inputBuffer;
+    size_t _inputReadPos;
+    Session* _session;
     std::string _remoteAddress;
     uint16 _remotePort;
+    std::mutex _sendLock;
+    std::atomic<bool> _closed;
 };
 
-#endif /* __REALMSOCKET_H__ */
+#endif

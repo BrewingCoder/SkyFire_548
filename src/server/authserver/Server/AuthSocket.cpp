@@ -18,6 +18,7 @@
 #include "openssl/crypto.h"
 #include "RealmList.h"
 #include "TOTP.h"
+#include <thread>
 
 #define ChunkSize 2048
 
@@ -136,7 +137,7 @@ typedef struct AuthHandler
 #endif
 
 // Launch a thread to transfer a patch to the client
-class PatcherRunnable : public ACE_Based::Runnable
+class PatcherRunnable
 {
 public:
     explicit PatcherRunnable(class AuthSocket*);
@@ -762,13 +763,13 @@ bool AuthSocket::_HandleReconnectProof()
     }
 }
 
-ACE_INET_Addr const& AuthSocket::GetAddressForClient(Realm const& realm, ACE_INET_Addr const& clientAddr)
+Skyfire::Net::Address const& AuthSocket::GetAddressForClient(Realm const& realm, Skyfire::Net::Address const& clientAddr)
 {
     // Attempt to send best address for client
-    if (clientAddr.is_loopback())
+    if (clientAddr.IsLoopback())
     {
         // Try guessing if realm is also connected locally
-        if (realm.LocalAddress.is_loopback() || realm.ExternalAddress.is_loopback())
+        if (realm.LocalAddress.IsLoopback() || realm.ExternalAddress.IsLoopback())
             return clientAddr;
 
         // Assume that user connecting from the machine that authserver is located on
@@ -813,8 +814,7 @@ bool AuthSocket::_HandleRealmList()
     // Update realm list if need
     sRealmList->UpdateIfNeed();
 
-    ACE_INET_Addr clientAddr;
-    socket().peer().get_remote_addr(clientAddr);
+    Skyfire::Net::Address clientAddr(socket().getRemoteAddress(), socket().getRemotePort());
 
     // Circle through realms in the RealmList and construct the return packet,
     // including the number of user characters in each realm.
@@ -852,7 +852,7 @@ bool AuthSocket::_HandleRealmList()
         }
 
         // We don't need the port number from which client connects with but the realm's port
-        clientAddr.set_port_number(realm.ExternalAddress.get_port_number());
+        clientAddr.SetPort(realm.ExternalAddress.GetPort());
 
         uint8 lock = (realm.allowedSecurityLevel > _accountSecurityLevel) ? 1 : 0;
 
@@ -936,7 +936,7 @@ bool AuthSocket::_HandleXferResume()
     socket().recv((char*)&start, sizeof(start));
     fseek(pPatch, long(start), 0);
 
-    ACE_Based::Thread u(new PatcherRunnable(this));
+    std::thread(&PatcherRunnable::run, PatcherRunnable(this)).detach();
     return true;
 }
 
@@ -968,7 +968,7 @@ bool AuthSocket::_HandleXferAccept()
     socket().recv_skip(1);                                         // clear input buffer
     fseek(pPatch, 0, 0);
 
-    ACE_Based::Thread u(new PatcherRunnable(this));
+    std::thread(&PatcherRunnable::run, PatcherRunnable(this)).detach();
     return true;
 }
 

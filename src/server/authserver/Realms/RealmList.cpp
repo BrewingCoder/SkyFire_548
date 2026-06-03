@@ -18,8 +18,8 @@ void RealmList::Initialize(uint32 updateInterval)
     UpdateRealms(true);
 }
 
-void RealmList::UpdateRealm(uint32 id, const std::string& name, ACE_INET_Addr const& address,
-    ACE_INET_Addr const& localAddr, ACE_INET_Addr const& localSubmask,
+void RealmList::UpdateRealm(uint32 id, const std::string& name, Skyfire::Net::Address const& address,
+    Skyfire::Net::Address const& localAddr, Skyfire::Net::Address const& localSubmask,
     uint8 icon, RealmFlags flag, uint8 timezone, AccountTypes allowedSecurityLevel,
     float popu, uint32 build)
 {
@@ -82,9 +82,9 @@ void RealmList::UpdateRealms(bool init)
             float pop = fields[10].GetFloat();
             uint32 build = fields[11].GetUInt32();
 
-            ACE_INET_Addr externalAddr(port, externalAddress.c_str(), AF_INET);
-            ACE_INET_Addr localAddr(port, localAddress.c_str(), AF_INET);
-            ACE_INET_Addr submask(0, localSubmask.c_str(), AF_INET);
+            Skyfire::Net::Address externalAddr(externalAddress, port);
+            Skyfire::Net::Address localAddr(localAddress, port);
+            Skyfire::Net::Address submask(localSubmask);
 
             AccountTypes securityLevel = allowedSecurityLevel <= AccountTypes::SEC_ADMINISTRATOR ?
                 AccountTypes(allowedSecurityLevel) : AccountTypes::SEC_ADMINISTRATOR;
@@ -93,7 +93,7 @@ void RealmList::UpdateRealms(bool init)
 
             if (init)
                 SF_LOG_INFO("server.authserver", "Added realm \"%s\" at %s:%u.", name.c_str(),
-                    m_realms[name].ExternalAddress.get_host_addr(), port);
+                    m_realms[name].ExternalAddress.GetHost().c_str(), port);
         } while (result->NextRow());
     }
 }
