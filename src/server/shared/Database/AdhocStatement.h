@@ -7,9 +7,9 @@
 #define _ADHOCSTATEMENT_H
 
 #include "SQLOperation.h"
-#include <ace/Future.h>
+#include "Threading/Future.h"
 
-typedef ACE_Future<QueryResult> QueryResultFuture;
+typedef Skyfire::Future<QueryResult> QueryResultFuture;
 /*! Raw, ad-hoc query. */
 class BasicStatementTask : public SQLOperation
 {

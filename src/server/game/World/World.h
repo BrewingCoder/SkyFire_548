@@ -893,7 +893,7 @@ private:
     void LoadCharacterNameData();
 
     void ProcessQueryCallbacks();
-    ACE_Future_Set<PreparedQueryResult> m_realmCharCallbacks;
+    std::vector<PreparedQueryResultFuture> m_realmCharCallbacks;
 };
 
 typedef std::map<uint32, std::string> RealmNameMap;

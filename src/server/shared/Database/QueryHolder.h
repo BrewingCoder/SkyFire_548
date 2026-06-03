@@ -6,7 +6,7 @@
 #ifndef _QUERYHOLDER_H
 #define _QUERYHOLDER_H
 
-#include <ace/Future.h>
+#include "Threading/Future.h"
 
 class SQLQueryHolder
 {
@@ -27,7 +27,7 @@ public:
     void SetPreparedResult(size_t index, PreparedResultSet* result);
 };
 
-typedef ACE_Future<SQLQueryHolder*> QueryResultHolderFuture;
+typedef Skyfire::Future<SQLQueryHolder*> QueryResultHolderFuture;
 
 class SQLQueryHolderTask : public SQLOperation
 {

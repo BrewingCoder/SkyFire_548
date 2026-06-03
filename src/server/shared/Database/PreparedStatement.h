@@ -7,7 +7,7 @@
 #define _PREPAREDSTATEMENT_H
 
 #include "SQLOperation.h"
-#include <ace/Future.h>
+#include "Threading/Future.h"
 
 #ifdef __APPLE__
 #undef TYPE_BOOL
@@ -147,7 +147,7 @@ private:
     MySQLPreparedStatement& operator=(MySQLPreparedStatement const& right) = delete;
 };
 
-typedef ACE_Future<PreparedQueryResult> PreparedQueryResultFuture;
+typedef Skyfire::Future<PreparedQueryResult> PreparedQueryResultFuture;
 
 //- Lower-level class, enqueuable operation
 class PreparedStatementTask : public SQLOperation
