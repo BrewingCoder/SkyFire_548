@@ -136,9 +136,4 @@ namespace Skyfire
     };
 }
 
-namespace ACE_Based
-{
-    template <class T, class LockType, typename StorageType = std::deque<T> >
-    using LockedQueue = Skyfire::LockedQueue<T, LockType, StorageType>;
-}
 #endif

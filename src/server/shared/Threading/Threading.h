@@ -89,18 +89,4 @@ namespace Skyfire
 
 }
 
-namespace ACE_Based
-{
-    using Skyfire::Priority;
-    using Skyfire::Idle;
-    using Skyfire::Lowest;
-    using Skyfire::Low;
-    using Skyfire::Normal;
-    using Skyfire::High;
-    using Skyfire::Highest;
-    using Skyfire::Realtime;
-    using Skyfire::Runnable;
-    using Skyfire::Thread;
-    using Skyfire::ThreadPriority;
-}
 #endif

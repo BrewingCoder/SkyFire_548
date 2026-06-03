@@ -76,7 +76,7 @@ uint32 realmID = -1;                                        ///< Id of the realm
 void usage(const char* prog)
 {
     printf("Usage:\n");
-    printf(" %s [<options>]\n");
+    printf(" %s [<options>]\n", prog);
     printf("    -c config_file                   use config_file as configuration file\n");
     printf("    --no_use_config_database_info    dont use database login info from config file\n");
     printf("    --db_host                        sets the database host, requires: --no_use_config_database_info\n");
