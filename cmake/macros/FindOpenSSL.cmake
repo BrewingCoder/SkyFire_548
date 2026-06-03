@@ -1,5 +1,5 @@
 #
-# This file is part of Project SkyFire https://www.projectskyfire.org. 
+# This file is part of Project SkyFire https://www.projectskyfire.org.
 # See COPYRIGHT file for Copyright information
 #
 
@@ -34,7 +34,7 @@ IF(PLATFORM EQUAL 64)
   SET(_OPENSSL_ROOT_PATHS
     "C:/OpenSSL-Win64/"
     "C:/Program Files/OpenSSL-Win64/"
-	"C:/OpenSSL/"
+    "C:/OpenSSL/"
     "C:/Program Files/OpenSSL/"
 
   )
@@ -94,9 +94,9 @@ IF(WIN32 AND NOT CYGWIN)
     )
 
     FIND_LIBRARY(OPENSSL_LIB_LEGACY
-	  NAMES
-	    liblegacy
-	  PATHS
+      NAMES
+        liblegacy
+      PATHS
         ${OPENSSL_ROOT_DIR}/lib/
         ${OPENSSL_ROOT_DIR}/lib/VC/x64/MD/
     )
@@ -144,7 +144,7 @@ IF(WIN32 AND NOT CYGWIN)
         ${OPENSSL_LIB_CRYPTO_RELEASE}
       )
     endif()
-	
+
     IF(DEFINED ENV{OPENSSL_MODULES})
       file(TO_CMAKE_PATH "$ENV{OPENSSL_MODULES}" OPENSSL_MODULES)
       MESSAGE(STATUS "OpenSSL: Environment variable [OPENSSL_MODULES] is set to: ${OPENSSL_MODULES}")
@@ -226,7 +226,7 @@ IF (OPENSSL_LIB_LEGACY)
 ELSE()
   message( FATAL_ERROR "Found OpenSSL legacy library: ${OPENSSL_LIB_LEGACY}")
 ENDIF()
-  
+
 if (NOT OPENSSL_INCLUDE_DIR)
   include(FindPackageHandleStandardArgs)
   find_package_handle_standard_args(OpenSSL DEFAULT_MSG

@@ -75,7 +75,7 @@ struct ModelHeader
     uint32 ofsTransparency;       // Transparency of textures.
     //uint32 nI;                  // always unused ?
     //uint32 ofsI;
-    uint32 nTexAnims;     	    // J, TextureAndTheifAnimation
+    uint32 nTexAnims;             // J, TextureAndTheifAnimation
     uint32 ofsTexAnims;
     uint32 nTexReplace;           // TextureAndTheifAnimation
     uint32 ofsTexReplace;         // Replaceable Textures.
@@ -88,7 +88,7 @@ struct ModelHeader
     uint32 nTexLookup;            // TextureAndTheifAnimation
     uint32 ofsTexLookup;          // The same for textures.
 
-    uint32 nTexUnitLookup;		// L, TextureAndTheifAnimation, seems gone after Cataclysm
+    uint32 nTexUnitLookup;        // L, TextureAndTheifAnimation, seems gone after Cataclysm
     uint32 ofsTexUnitLookup;      // And texture units. Somewhere they have to be too.
     uint32 nTransparencyLookup;   // M, ColorsAndTransparency
     uint32 ofsTransparencyLookup; // Everything needs its lookup. Here are the transparencies.
@@ -109,7 +109,7 @@ struct ModelHeader
     uint32 ofsAttachments;        // Attachments are for weapons etc.
     uint32 nAttachLookup;         // P, Miscellaneous
     uint32 ofsAttachLookup;       // Of course with a lookup.
-    uint32 nEvents;               // 
+    uint32 nEvents;               //
     uint32 ofsEvents;             // Used for playing sounds when dying and a lot else.
     uint32 nLights;               // R
     uint32 ofsLights;             // Lights are mainly used in loginscreens but in wands and some doodads too.

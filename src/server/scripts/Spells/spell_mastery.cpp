@@ -1,5 +1,5 @@
 /*
-* This file is part of Project SkyFire https://www.projectskyfire.org. 
+* This file is part of Project SkyFire https://www.projectskyfire.org.
 * See LICENSE.md file for Copyright information
 */
 
@@ -18,7 +18,7 @@ enum MasterySpells
     MASTERY_PALADIN_HOLY                = 76669,
     MASTERY_PALADIN_PROTECTION          = 76671,
     MASTERY_PALADIN_RETRIBUTION         = 76672,
-    
+
     MASTERY_HUNTER_BEASTMASTER          = 76657,
     MASTERY_HUNTER_MARKSMAN             = 76659,
     MASTERY_HUNTER_SURVIVAL             = 76658,
@@ -51,12 +51,12 @@ enum MasterySpells
     MASTERY_MONK_MISTWEAVER             = 117907,
     MASTERY_MONK_WINDWALKER             = 115636,
 
-	MASTERY_SPELL_COMBO_BREAKER_1       = 118864,
+    MASTERY_SPELL_COMBO_BREAKER_1       = 118864,
     MASTERY_SPELL_COMBO_BREAKER_2       = 116768,
 
-	SPELL_DK_SCENT_OF_BLOOD             = 50421,
+    SPELL_DK_SCENT_OF_BLOOD             = 50421,
 
-	MASTERY_SPELL_LIGHTNING_BOLT        = 45284,
+    MASTERY_SPELL_LIGHTNING_BOLT        = 45284,
     MASTERY_SPELL_CHAIN_LIGHTNING       = 45297,
     MASTERY_SPELL_LAVA_BURST            = 77451,
     MASTERY_SPELL_ELEMENTAL_BLAST       = 120588,
@@ -72,7 +72,7 @@ enum MasterySpells
 
 enum WarriorSpells
 {
-	SPELL_WARR_ENRAGE		= 12880,
+    SPELL_WARR_ENRAGE        = 12880,
 };
 
 // Warrior spell : Enrage 12880

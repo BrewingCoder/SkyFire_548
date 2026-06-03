@@ -97,7 +97,7 @@ public:
         std::string uptime = secsToTimeString(sWorld->GetUptime());
         uint32 updateTime = sWorld->GetUpdateTime();
 
-		handler->PSendSysMessage("Open Source Emulation https://www.projectskyfire.org");
+        handler->PSendSysMessage("Open Source Emulation https://www.projectskyfire.org");
         handler->PSendSysMessage("www.github.com/ProjectSkyfire/SkyFire_548");
         handler->PSendSysMessage("revision: %s", VER_PRODUCTVERSION_STR);
         handler->PSendSysMessage(LANG_CONNECTED_PLAYERS, playersNum, maxPlayersNum);

@@ -1,5 +1,5 @@
 #
-# This file is part of Project SkyFire https://www.projectskyfire.org. 
+# This file is part of Project SkyFire https://www.projectskyfire.org.
 # See COPYRIGHT file for Copyright information
 #
 
@@ -27,7 +27,7 @@ if( UNIX )
 # Unix is still operating in legacy mode
   cmake_policy(SET CMP0005 OLD)
 else()
-  
+
 endif()
 
 # add this options before PROJECT keyword
@@ -39,7 +39,7 @@ set(CMAKE_SKIP_BUILD_RPATH 0)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH 0)
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH 1)
-	   
+
 # set macro-directory
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/macros")
 
@@ -99,7 +99,7 @@ if( UNIX )
   find_package(ZLIB)
   find_package(BZip2)
   find_package(Jemalloc)
-  
+
   if (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch")
     find_package(sse2neon)
   endif()

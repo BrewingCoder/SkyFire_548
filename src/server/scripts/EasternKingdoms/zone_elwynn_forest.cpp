@@ -1,5 +1,5 @@
 /*
-* This file is part of Project SkyFire https://www.projectskyfire.org. 
+* This file is part of Project SkyFire https://www.projectskyfire.org.
 * See LICENSE.md file for Copyright information
 */
 
@@ -113,7 +113,7 @@ public:
             Talk(RAND(SAY_BLACKROCK_COMBAT_1, SAY_BLACKROCK_COMBAT_2, SAY_BLACKROCK_COMBAT_3, SAY_BLACKROCK_COMBAT_4, SAY_BLACKROCK_COMBAT_5), me);
         }
 
-		void UpdateAI(uint32 /*diff*/) OVERRIDE
+        void UpdateAI(uint32 /*diff*/) OVERRIDE
         {
             CastSpyglass();
 
@@ -148,7 +148,7 @@ public:
             Talk(RAND(SAY_BLACKROCK_COMBAT_1, SAY_BLACKROCK_COMBAT_2, SAY_BLACKROCK_COMBAT_3, SAY_BLACKROCK_COMBAT_4, SAY_BLACKROCK_COMBAT_5), me);
         }
 
-		void UpdateAI(uint32 /*diff*/) OVERRIDE
+        void UpdateAI(uint32 /*diff*/) OVERRIDE
         {
             if (!UpdateVictim())
                 return;
@@ -185,7 +185,7 @@ public:
             Talk(RAND(SAY_ASSASSIN_COMBAT_1, SAY_ASSASSIN_COMBAT_2), me);
         }
 
-		void UpdateAI(uint32 /*diff*/) OVERRIDE
+        void UpdateAI(uint32 /*diff*/) OVERRIDE
         {
             if (!UpdateVictim())
                 return;
@@ -245,7 +245,7 @@ public:
             }
         }
 
-		void UpdateAI(uint32 diff) OVERRIDE
+        void UpdateAI(uint32 diff) OVERRIDE
         {
             if (!UpdateVictim())
                 return;
@@ -508,7 +508,7 @@ public:
                         me->GetMotionMaster()->MoveFollow(victim, 0.1f, 0.0f);
                         AttackStart(victim);
                     }
-                    
+
                     events.ScheduleEvent(EVENT_VICIOUS_SLICE, 3000);
                     break;
                 }
@@ -661,7 +661,7 @@ public:
                     {
                         player->KilledMonsterCredit(448);
                     }*/
-                    
+
                     me->CastSpell(me, SPELL_TELEPORT_VISUAL_ONLY);
                     me->DespawnOrUnsummon();
                 }
