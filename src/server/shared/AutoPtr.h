@@ -6,16 +6,15 @@
 #ifndef _SKYFIRE_AUTO_PTR_H
 #define _SKYFIRE_AUTO_PTR_H
 
-#include "Platform/Threading.h"
-#include <ace/Bound_Ptr.h>
+#include <memory>
 
 namespace Skyfire
 {
 
     template <class Pointer, class Lock>
-    class AutoPtr : public ACE_Strong_Bound_Ptr<Pointer, Lock>
+    class AutoPtr : public std::shared_ptr<Pointer>
     {
-        typedef ACE_Strong_Bound_Ptr<Pointer, Lock> Base;
+        typedef std::shared_ptr<Pointer> Base;
 
     public:
         AutoPtr() : Base() { }
@@ -24,12 +23,17 @@ namespace Skyfire
 
         operator bool() const
         {
-            return !Base::null();
+            return Base::get() != NULL;
         }
 
         bool operator !() const
         {
-            return Base::null();
+            return Base::get() == NULL;
+        }
+
+        bool null() const
+        {
+            return Base::get() == NULL;
         }
     };
 
