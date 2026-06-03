@@ -6,21 +6,21 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include <AutoPtr.h>
 #include "Platform/Singleton.h"
-#include <ace/Configuration_Import_Export.h>
 #include <list>
+#include <map>
 #include <mutex>
 #include <string>
 
-typedef Skyfire::AutoPtr<ACE_Configuration_Heap, Skyfire::NullMutex> Config;
+typedef std::map<std::string, std::string> ConfigSection;
+typedef std::map<std::string, ConfigSection> Config;
 
 class ConfigMgr
 {
     friend class Skyfire::Singleton<ConfigMgr, Skyfire::NullMutex>;
     friend class ConfigLoader;
 
-    ConfigMgr() { }
+    ConfigMgr() : _configLoaded(false) { }
     ~ConfigMgr() { }
 
 public:
@@ -46,7 +46,7 @@ public:
     std::list<std::string> GetKeysByString(std::string const& name);
 
 private:
-    bool GetValueHelper(const char* name, ACE_TString& result);
+    bool GetValueHelper(const char* name, std::string& result);
     bool LoadData(char const* file);
 
     typedef std::mutex LockType;
@@ -54,6 +54,7 @@ private:
 
     std::string _filename;
     Config _config;
+    bool _configLoaded;
     LockType _configLock;
 
     ConfigMgr(ConfigMgr const&);

@@ -6,26 +6,80 @@
 #include "Config.h"
 #include "Errors.h"
 
+#include <algorithm>
+#include <cctype>
+#include <fstream>
+
+namespace
+{
+    std::string Trim(std::string value)
+    {
+        std::string::iterator first = std::find_if(value.begin(), value.end(), [](unsigned char c) { return !std::isspace(c); });
+        std::string::reverse_iterator last = std::find_if(value.rbegin(), value.rend(), [](unsigned char c) { return !std::isspace(c); });
+
+        if (first == value.end())
+            return "";
+
+        return std::string(first, last.base());
+    }
+
+    std::string StripComment(std::string const& line)
+    {
+        bool quoted = false;
+        char quote = '\0';
+
+        for (std::string::size_type i = 0; i < line.size(); ++i)
+        {
+            char c = line[i];
+
+            if ((c == '"' || c == '\'') && (i == 0 || line[i - 1] != '\\'))
+            {
+                if (!quoted)
+                {
+                    quoted = true;
+                    quote = c;
+                }
+                else if (quote == c)
+                    quoted = false;
+            }
+            else if (!quoted && (c == '#' || c == ';'))
+                return line.substr(0, i);
+        }
+
+        return line;
+    }
+
+    std::string StripQuotes(std::string value)
+    {
+        if (value.size() >= 2)
+        {
+            char first = value.front();
+            char last = value.back();
+
+            if ((first == '"' && last == '"') || (first == '\'' && last == '\''))
+                return value.substr(1, value.size() - 2);
+        }
+
+        return value;
+    }
+}
 
 // Defined here as it must not be exposed to end-users.
-bool ConfigMgr::GetValueHelper(const char* name, ACE_TString& result)
+bool ConfigMgr::GetValueHelper(const char* name, std::string& result)
 {
     GuardType guard(_configLock);
 
-    if (_config.get() == 0)
+    if (!_configLoaded)
         return false;
 
-    ACE_TString section_name;
-    ACE_Configuration_Section_Key section_key;
-    const ACE_Configuration_Section_Key& root_key = _config->root_section();
-
-    int i = 0;
-    while (_config->enumerate_sections(root_key, i, section_name) == 0)
+    for (Config::const_iterator section = _config.begin(); section != _config.end(); ++section)
     {
-        _config->open_section(root_key, section_name.c_str(), 0, section_key);
-        if (_config->get_string_value(section_key, name, result) == 0)
+        ConfigSection::const_iterator value = section->second.find(name);
+        if (value != section->second.end())
+        {
+            result = value->second;
             return true;
-        ++i;
+        }
     }
 
     return false;
@@ -38,19 +92,23 @@ bool ConfigMgr::LoadInitial(char const* file)
     GuardType guard(_configLock);
 
     _filename = file;
-    _config.reset(new ACE_Configuration_Heap());
-    if (_config->open() == 0)
-        if (LoadData(_filename.c_str()))
-            return true;
+    _config.clear();
+    _configLoaded = false;
 
-    _config.reset();
+    if (LoadData(_filename.c_str()))
+    {
+        _configLoaded = true;
+        return true;
+    }
+
+    _config.clear();
     return false;
 }
 
 bool ConfigMgr::LoadMore(char const* file)
 {
     ASSERT(file);
-    ASSERT(_config);
+    ASSERT(_configLoaded);
 
     GuardType guard(_configLock);
 
@@ -64,22 +122,50 @@ bool ConfigMgr::Reload()
 
 bool ConfigMgr::LoadData(char const* file)
 {
-    ACE_Ini_ImpExp config_importer(*_config.get());
-    if (config_importer.import_config(file) == 0)
-        return true;
+    std::ifstream input(file);
+    if (!input.is_open())
+        return false;
 
-    return false;
+    std::string section;
+    std::string line;
+
+    while (std::getline(input, line))
+    {
+        line = Trim(StripComment(line));
+
+        if (line.empty())
+            continue;
+
+        if (line.front() == '[' && line.back() == ']')
+        {
+            section = Trim(line.substr(1, line.size() - 2));
+            _config[section];
+            continue;
+        }
+
+        std::string::size_type separator = line.find('=');
+        if (separator == std::string::npos)
+            continue;
+
+        std::string key = Trim(line.substr(0, separator));
+        std::string value = StripQuotes(Trim(line.substr(separator + 1)));
+
+        if (!key.empty())
+            _config[section][key] = value;
+    }
+
+    return true;
 }
 
 std::string ConfigMgr::GetStringDefault(const char* name, const std::string& def)
 {
-    ACE_TString val;
-    return GetValueHelper(name, val) ? val.c_str() : def;
+    std::string val;
+    return GetValueHelper(name, val) ? val : def;
 }
 
 bool ConfigMgr::GetBoolDefault(const char* name, bool def)
 {
-    ACE_TString val;
+    std::string val;
 
     if (!GetValueHelper(name, val))
         return def;
@@ -90,13 +176,13 @@ bool ConfigMgr::GetBoolDefault(const char* name, bool def)
 
 int ConfigMgr::GetIntDefault(const char* name, int def)
 {
-    ACE_TString val;
+    std::string val;
     return GetValueHelper(name, val) ? atoi(val.c_str()) : def;
 }
 
 float ConfigMgr::GetFloatDefault(const char* name, float def)
 {
-    ACE_TString val;
+    std::string val;
     return GetValueHelper(name, val) ? (float)atof(val.c_str()) : def;
 }
 
@@ -111,28 +197,17 @@ std::list<std::string> ConfigMgr::GetKeysByString(std::string const& name)
     GuardType guard(_configLock);
 
     std::list<std::string> keys;
-    if (_config.get() == 0)
+    if (!_configLoaded)
         return keys;
 
-    ACE_TString section_name;
-    ACE_Configuration_Section_Key section_key;
-    const ACE_Configuration_Section_Key& root_key = _config->root_section();
-
-    int i = 0;
-    while (_config->enumerate_sections(root_key, i++, section_name) == 0)
+    for (Config::const_iterator section = _config.begin(); section != _config.end(); ++section)
     {
-        _config->open_section(root_key, section_name.c_str(), 0, section_key);
-
-        ACE_TString key_name;
-        ACE_Configuration::VALUETYPE type;
-        int j = 0;
-        while (_config->enumerate_values(section_key, j++, key_name, type) == 0)
+        for (ConfigSection::const_iterator value = section->second.begin(); value != section->second.end(); ++value)
         {
-            std::string temp = key_name.c_str();
-            size_t pos = temp.find(name);
+            size_t pos = value->first.find(name);
 
             if (pos != std::string::npos)
-                keys.push_back(temp);
+                keys.push_back(value->first);
         }
     }
 
