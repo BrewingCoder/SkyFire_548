@@ -10,6 +10,7 @@
 #include "Config.h"
 #include "Log.h"
 #include "LogOperation.h"
+#include "Platform/TimeUtils.h"
 #include "Util.h"
 
 #include <cstdarg>
@@ -272,7 +273,7 @@ std::string Log::GetTimestampStr()
 {
     time_t t = time(NULL);
     tm aTm;
-    ACE_OS::localtime_r(&t, &aTm);
+    Skyfire::LocalTime(t, aTm);
     char buf[20];
     snprintf(buf, sizeof(buf), "%u-%u-%u_%u-%u-%u", uint32(aTm.tm_year + 1900), uint32(aTm.tm_mon + 1), uint32(aTm.tm_mday), uint32(aTm.tm_hour), uint32(aTm.tm_min), uint32(aTm.tm_sec));
     return std::string(buf);

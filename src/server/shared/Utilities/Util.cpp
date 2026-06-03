@@ -5,6 +5,7 @@
 
 #include "Common.h"
 #include "Errors.h" // for ASSERT
+#include "Platform/TimeUtils.h"
 #include "sfmt.h"
 #include "utf8.h"
 #include "Util.h"
@@ -192,7 +193,7 @@ uint32 TimeStringToSecs(const std::string& timestring)
 std::string TimeToTimestampStr(time_t t)
 {
     tm aTm;
-    ACE_OS::localtime_r(&t, &aTm);
+    Skyfire::LocalTime(t, aTm);
     //       YYYY   year
     //       MM     month (2 digits 01-12)
     //       DD     day (2 digits 01-31)
