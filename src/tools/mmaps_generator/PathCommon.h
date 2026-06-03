@@ -6,9 +6,9 @@
 #ifndef _MMAP_COMMON_H
 #define _MMAP_COMMON_H
 
+#include <chrono>
 #include <string>
 #include <vector>
-#include <ace/OS_NS_sys_time.h>
 
 #include "Define.h"
 
@@ -126,8 +126,9 @@ namespace MMAP
 
     inline uint32 getMSTime()
     {
-        static const ACE_Time_Value ApplicationStartTime = ACE_OS::gettimeofday();
-        return (ACE_OS::gettimeofday() - ApplicationStartTime).msec();
+        using Clock = std::chrono::steady_clock;
+        static const Clock::time_point ApplicationStartTime = Clock::now();
+        return uint32(std::chrono::duration_cast<std::chrono::milliseconds>(Clock::now() - ApplicationStartTime).count());
     }
 
     inline uint32 getMSTimeDiff(uint32 oldMSTime, uint32 newMSTime)

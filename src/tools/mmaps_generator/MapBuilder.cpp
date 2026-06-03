@@ -13,7 +13,9 @@
 #include "DetourNavMesh.h"
 #include "DetourCommon.h"
 #include "DisableMgr.h"
-#include <ace/OS_NS_unistd.h>
+
+#include <functional>
+#include <thread>
 
 uint32 GetLiquidFlags(uint32 /*liquidType*/) { return 0; }
 
@@ -152,9 +154,9 @@ namespace MMAP
     /**************************************************************************/
     void MapBuilder::buildAllMaps(unsigned int threads)
     {
-        std::vector<BuilderThread*> _threads;
+        std::vector<std::thread> _threads;
 
-        BuilderThreadPool* pool = threads > 0 ? new BuilderThreadPool() : NULL;
+        BuilderThreadPool pool;
 
         for (TileList::iterator it = m_tiles.begin(); it != m_tiles.end(); ++it)
         {
@@ -162,7 +164,7 @@ namespace MMAP
             if (!shouldSkipMap(mapID))
             {
                 if (threads > 0)
-                    pool->Enqueue(new MapBuildRequest(mapID));
+                    pool.Enqueue(mapID);
                 else
                     buildMap(mapID);
             }
@@ -172,17 +174,15 @@ namespace MMAP
         
         for (unsigned int i = 0; i < threads; ++i)
         {
-            _threads.push_back(new BuilderThread(this, pool->Queue()));
+            _threads.push_back(std::thread(&BuilderThreadPool::Run, &pool, this));
         }
             
         // Free memory
-        for (std::vector<BuilderThread*>::iterator _th = _threads.begin(); _th != _threads.end(); ++_th)
+        for (std::vector<std::thread>::iterator _th = _threads.begin(); _th != _threads.end(); ++_th)
         {
-            (*_th)->wait();
-            delete *_th;
+            if (_th->joinable())
+                _th->join();
         }
-
-        delete pool;
     }
 
     /**************************************************************************/
@@ -301,7 +301,7 @@ namespace MMAP
     /**************************************************************************/
     void MapBuilder::buildMap(uint32 mapID)
     {
-        printf("[Thread %u] Building map %04u:\n", uint32(ACE_Thread::self()), mapID);
+        printf("[Thread %u] Building map %04u:\n", uint32(std::hash<std::thread::id>()(std::this_thread::get_id())), mapID);
 
         std::set<uint32>* tiles = getTileList(mapID);
 
