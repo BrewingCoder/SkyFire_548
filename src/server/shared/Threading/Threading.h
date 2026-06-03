@@ -7,9 +7,9 @@
 #define THREADING_H
 
 #include <atomic>
-#include <ace/Thread.h>
-#include <ace/TSS_T.h>
 #include <assert.h>
+#include <cstdint>
+#include <thread>
 
 namespace ACE_Based
 {
@@ -71,25 +71,20 @@ namespace ACE_Based
         void setPriority(Priority type);
 
         static void Sleep(unsigned long msecs);
-        static ACE_thread_t currentId();
-        static ACE_hthread_t currentHandle();
+        static uint64_t currentId();
+        static std::thread::native_handle_type currentHandle();
         static Thread* current();
 
     private:
         Thread(const Thread&);
         Thread& operator=(const Thread&);
 
-        static ACE_THR_FUNC_RETURN ThreadTask(void* param);
+        static void ThreadTask(Runnable* param);
 
-        ACE_thread_t m_iThreadId;
-        ACE_hthread_t m_hThreadHandle;
+        uint64_t m_iThreadId;
+        std::thread m_thread;
         Runnable* m_task;
-
-        typedef ACE_TSS<Thread> ThreadStorage;
-        //global object - container for Thread class representation of every thread
-        static ThreadStorage m_ThreadStorage;
-        //use this object to determine current OS thread priority values mapped to enum Priority{ }
-        static ThreadPriority m_TpEnum;
+        bool m_started;
     };
 
 }
