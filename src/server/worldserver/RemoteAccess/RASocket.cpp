@@ -16,6 +16,8 @@
 #include "SRP6.h"
 #include "Util.h"
 #include "World.h"
+#include <chrono>
+#include <thread>
 
 RASocket::RASocket() : _minLevel(3), _commandExecuting(false)
 {
@@ -46,7 +48,7 @@ int RASocket::handle_close(ACE_HANDLE /*handle*/, ACE_Reactor_Mask /*mask*/)
     // RASocket::commandfinished to be completed. Calling destroy() before the latter function ends
     // will lead to using a freed pointer -> crash.
     while (_commandExecuting)
-        ACE_OS::sleep(1);
+        std::this_thread::sleep_for(std::chrono::seconds(1));
 
     destroy();
     return 0;
